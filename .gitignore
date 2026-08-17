@@ -20,4 +20,7 @@ dist/
 # OS
 .DS_Store
 .vercel
-.env*
+
+# Vercel's link step appends `.env*`; keep the checked-in examples visible.
+!.env.example
+!frontend/.env.example
