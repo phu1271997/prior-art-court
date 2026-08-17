@@ -1,0 +1,96 @@
+"""
+Seed doctrine for the PolicyRegistry.
+
+This module is NOT an Intelligent Contract — it is plain Python, read by the
+deploy script and written on-chain via `register_policy`. It lives beside the
+contracts because the doctrine is part of the protocol's meaning, not part of its
+tooling: change a string here and every future adjudication in that category is
+decided against a different standard.
+
+Each doctrine is written to be applied by a reasoner, not matched by a parser.
+It says what counts as protected expression in that kind of work, what reuse is
+legitimate, and what specifically must NOT be treated as copying. That last part
+matters most — an adjudicator with no stated floor drifts toward calling every
+resemblance infringement.
+"""
+
+POLICIES: dict[str, str] = {
+    "news-article": (
+        "This category covers reported articles, news write-ups and journalism. "
+        "Protected expression is the writer's own prose: sentence construction, "
+        "narrative order, chosen detail, framing, and original analysis. "
+        "FACTS ARE NEVER PROTECTED. Two outlets covering the same event will "
+        "report the same names, dates, figures and quotes from the same sources, "
+        "and that is not copying — it is journalism working correctly. Quoting a "
+        "passage with attribution is permitted, including at length where the "
+        "quotation is the subject of commentary. Aggregation with a link and a "
+        "short summary is permitted. Treat as INFRINGING only where the later "
+        "work reproduces the earlier work's own sentences, its distinctive "
+        "structure, or its original reporting and analysis, with the attribution "
+        "removed or buried, such that a reader would not know they are reading "
+        "someone else's work. Rewriting an article sentence-by-sentence into "
+        "synonyms while keeping its structure and its exclusive reporting IS "
+        "copying, even though no sentence matches literally."
+    ),
+    "source-code": (
+        "This category covers source code, configuration and technical scripts. "
+        "Protected expression is the author's own implementation: non-obvious "
+        "algorithmic choices, module and data-flow structure, naming schemes, "
+        "comments, and the specific way a problem was decomposed. "
+        "NOT PROTECTED: language syntax, standard library idioms, framework "
+        "boilerplate, generated code, published interfaces that must be "
+        "implemented exactly to interoperate, and any solution the problem itself "
+        "forces. Two correct implementations of a well-known algorithm will look "
+        "alike, and that is convergence, not copying. Use permitted by an open "
+        "licence is DERIVATIVE_FAIR — but only where the later work carries the "
+        "attribution or licence notice that permission depends on; stripping "
+        "those while keeping the code is INFRINGING. Weigh copied comments, "
+        "copied variable names and copied bugs far more heavily than copied "
+        "structure: identical idiosyncrasies are the strongest evidence of "
+        "copying, because nothing about the problem required them."
+    ),
+    "academic-paper": (
+        "This category covers papers, preprints, theses and technical reports. "
+        "Protected expression is the authors' own text and their original "
+        "contribution: framing of the problem, methodology as written, argument, "
+        "and discussion. NOT PROTECTED: established results, standard notation, "
+        "common methods, and the shared background every paper in a field "
+        "restates. Quotation, citation, replication and building directly on "
+        "prior work are the mechanism of scholarship and are DERIVATIVE_FAIR when "
+        "the earlier work is cited. Treat as INFRINGING where text is reproduced "
+        "or lightly paraphrased without citation, where a citation is present but "
+        "so understated that the reader would take the borrowed contribution as "
+        "the later authors' own, or where results or figures are reused as new. "
+        "Self-overlap between a preprint and its published version by the same "
+        "authors is not infringement."
+    ),
+    "marketing-copy": (
+        "This category covers landing pages, product descriptions, adverts and "
+        "brand copy. Protected expression is distinctive creative work: an "
+        "original tagline, a specific voice, a structured campaign narrative, or "
+        "a memorable formulation. NOT PROTECTED: product facts, specifications, "
+        "prices, feature lists, industry vocabulary, standard page architecture "
+        "(hero, features, testimonials, pricing, footer), and the ordinary claims "
+        "every vendor in a category makes. Competitors sound alike because they "
+        "sell alike; sounding alike is not copying. Comparative advertising that "
+        "names and quotes a competitor is permitted. Treat as INFRINGING where a "
+        "distinctive tagline or a substantial block of original copy is lifted, or "
+        "where the later page reproduces the earlier page's specific creative "
+        "narrative closely enough that a reader could mistake one brand for the "
+        "other."
+    ),
+    "documentation": (
+        "This category covers technical documentation, tutorials, API references "
+        "and developer guides. Protected expression is the author's explanatory "
+        "work: worked examples, chosen analogies, the teaching order, prose, and "
+        "original diagrams. NOT PROTECTED: the API being documented, required "
+        "parameter names, signatures, error strings, the canonical minimal usage "
+        "example, and installation steps — all of which must be stated exactly to "
+        "be correct. Two guides to the same library will share all of that. "
+        "Documentation published under a permissive or copyleft licence may be "
+        "reused per that licence and is DERIVATIVE_FAIR where the licence and "
+        "attribution travel with it. Treat as INFRINGING where original prose, a "
+        "distinctive example, or a whole page's explanatory structure is "
+        "reproduced and presented as the later author's own."
+    ),
+}
