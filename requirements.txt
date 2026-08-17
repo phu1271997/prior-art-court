@@ -1,0 +1,2 @@
+genlayer-py>=0.16.0
+genlayer-test>=0.29.0
