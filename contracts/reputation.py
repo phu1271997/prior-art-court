@@ -73,9 +73,9 @@ class Contract(gl.Contract):
     records: TreeMap[str, Record]
     parties: DynArray[str]
 
-    def __init__(self, court: Address) -> None:
+    def __init__(self, court: str) -> None:
         self.admin = gl.message.sender_address
-        self.court = court
+        self.court = _to_address(court)
         self.synced_count = 0
 
     # ---------------------------------------------------------------- internal
@@ -201,10 +201,10 @@ class Contract(gl.Contract):
             self.sync_case(int(key))
 
     @gl.public.write
-    def set_court(self, court: Address) -> None:
+    def set_court(self, court: str) -> None:
         """Repoint at a redeployed court. Admin only — the records themselves stay."""
         assert gl.message.sender_address == self.admin, "reputation: admin only"
-        self.court = court
+        self.court = _to_address(court)
 
     # ------------------------------------------------------------------- views
 
@@ -234,8 +234,40 @@ class Contract(gl.Contract):
         return self.court.as_hex
 
 
-def _addr_str(addr: Address) -> str:
+def _to_address(value) -> Address:
+    """
+    Coerce a caller-supplied address into an `Address`, whatever form it arrived in.
+
+    Deployment clients do not agree on how to encode an address argument. Studio's
+    deploy form sends a hex literal through as an integer; the Python SDK sends a
+    `CalldataAddress`; a hand-written call may send the hex string. Only the last
+    two would reach a bare `Address` annotation intact, and the failure mode of the
+    first is opaque — the assignment blows up deep inside the storage layer with
+    `'int' object has no attribute 'as_bytes'`.
+
+    Normalizing here means the contract deploys identically from Studio, from the
+    CLI, and from the test VM.
+    """
+    if isinstance(value, Address):
+        return value
+    if isinstance(value, (bytes, bytearray)):
+        return Address(bytes(value))
+    if isinstance(value, str):
+        text = value.strip()
+        if text.lower().startswith("0x"):
+            text = text[2:]
+        assert len(text) <= 40, "address: too long to be a 20-byte address"
+        return Address(bytes.fromhex(text.rjust(40, "0")))
+    if isinstance(value, int):
+        assert 0 <= value < (1 << 160), "address: out of range for 20 bytes"
+        return Address(value.to_bytes(20, "big"))
+    assert False, "address: unsupported address encoding"
+
+
+def _addr_str(addr) -> str:
+    """Stable string form of an address — `as_hex` is not present on every build."""
+    address = _to_address(addr)
     try:
-        return addr.as_hex
+        return address.as_hex
     except Exception:
-        return str(addr)
+        return str(address)

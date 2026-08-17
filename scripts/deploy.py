@@ -32,7 +32,7 @@ from pathlib import Path
 
 from genlayer_py import create_account, create_client
 from genlayer_py.chains import localnet, studionet
-from genlayer_py.types import CalldataAddress, TransactionStatus
+from genlayer_py.types import TransactionStatus
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -132,13 +132,12 @@ def main() -> None:
     print(f"\nPrior Art Court -> {args.chain}")
     print(f"  deployer         {account.address}\n")
 
+    # Addresses go in as plain hex strings. The contracts normalize whatever they
+    # are handed (`_to_address`), so the same argument works from here, from
+    # Studio's deploy form, and from the test VM.
     registry = deploy(client, account, "PolicyRegistry", "policy_registry.py", [])
-    court = deploy(
-        client, account, "Court", "contract.py", [CalldataAddress(bytes.fromhex(registry[2:]))]
-    )
-    reputation = deploy(
-        client, account, "Reputation", "reputation.py", [CalldataAddress(bytes.fromhex(court[2:]))]
-    )
+    court = deploy(client, account, "Court", "contract.py", [registry])
+    reputation = deploy(client, account, "Reputation", "reputation.py", [court])
 
     if not args.skip_policies:
         print("\n  registering doctrine")

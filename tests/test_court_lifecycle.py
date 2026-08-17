@@ -192,3 +192,21 @@ def test_the_docket_reads_newest_first(vm, court, accounts):
 
     everything = json.loads(court.get_cases(0))
     assert [case["case_id"] for case in everything] == [1, 0]
+
+
+def test_the_registry_address_survives_any_encoding(vm, registry, accounts):
+    """
+    Studio's deploy form hands a hex literal through as an integer, the SDK sends
+    an Address, and a hand-written call may send a string. All three name the same
+    contract, so all three must deploy.
+    """
+    from gltest.direct import create_address
+
+    from conftest import REGISTRY_SEED, deploy
+
+    expected = create_address(REGISTRY_SEED)
+    vm.sender = accounts["admin"]
+
+    for encoding in (int(expected.as_hex, 16), expected.as_hex, expected):
+        instance = deploy(vm, "contract.py", encoding)
+        assert instance.get_policy_registry() == expected.as_hex
