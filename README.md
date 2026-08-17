@@ -16,7 +16,8 @@ decentralized validator set rather than issued by a platform.
 > who owes whom. GenLayer is the only place all three hold at once.
 
 - **Network:** GenLayer **studionet**, via [GenLayer Studio](https://studio.genlayer.com)
-- **Live app:** _fill in after deploying the frontend_
+- **Live app:** <https://prior-art-court.vercel.app>
+- **Source:** <https://github.com/phu1271997/prior-art-court>
 - **Contracts** (studionet):
 
 | Contract | Address |
@@ -256,7 +257,16 @@ on connect, reading the chain id from the SDK rather than a constant.
 
 The repo root carries a `vercel.json` that builds `frontend/` and serves
 `frontend/dist`. Set the same `VITE_*` values in the host's environment as
-`scripts/deploy.py` wrote into `frontend/.env.local`.
+`scripts/deploy.py` wrote into `frontend/.env.local`:
+
+```bash
+vercel link --yes --project prior-art-court
+printf 'studionet' | vercel env add VITE_GENLAYER_CHAIN production
+printf '0x082FcFeFEE1B7642C42bd5E1eBaa6C029fe19869' | vercel env add VITE_COURT_ADDRESS production
+printf '0xFC3A3422c64c3B84eDb8B31a333C8531B8Ba1755' | vercel env add VITE_POLICY_REGISTRY_ADDRESS production
+printf '0xF950283384B69900a4B13aCDEc99A7adB137CA7e' | vercel env add VITE_REPUTATION_ADDRESS production
+vercel --prod --yes
+```
 
 **No private key belongs in any `VITE_` variable.** Everything so prefixed is
 bundled into the shipped JavaScript and is publicly readable. The user's wallet
