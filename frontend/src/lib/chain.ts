@@ -131,17 +131,40 @@ function client(account?: string) {
   });
 }
 
+/*
+  The hosted RPC occasionally answers a read with an HTML interstitial rather than
+  JSON — a rate limiter or an edge cache, not the contract. Left unhandled that
+  surfaces as "Unexpected token '<'" and an empty docket, which reads as a broken
+  app. It is transient, so reads back off and try again; a genuine contract error
+  has a different shape and is rethrown immediately.
+*/
+const isTransientRead = (error: unknown) =>
+  /Unexpected token '<'|<!DOCTYPE|Failed to fetch|NetworkError|429|502|503|504/i.test(
+    String((error as Error)?.message ?? error)
+  );
+
 export async function read<T = unknown>(
   address: string,
   functionName: string,
-  args: unknown[] = []
+  args: unknown[] = [],
+  attempts = 3
 ): Promise<T> {
-  const result = await client().readContract({
-    address: address as Hex,
-    functionName,
-    args: args as never,
-  });
-  return result as T;
+  let lastError: unknown;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      const result = await client().readContract({
+        address: address as Hex,
+        functionName,
+        args: args as never,
+      });
+      return result as T;
+    } catch (error) {
+      lastError = error;
+      if (!isTransientRead(error)) throw error;
+      await sleep(600 * (attempt + 1));
+    }
+  }
+  throw lastError;
 }
 
 export async function readJson<T>(

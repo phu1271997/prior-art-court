@@ -43,6 +43,26 @@ export function FileComplaint({ policies, disabled, onSubmit }: Props) {
     }
   }
 
+  // No doctrine, no jurisdiction. The court refuses a complaint in a category it
+  // has no published standard for, so the form says why rather than letting the
+  // user stake a bond on a transaction that will be rejected.
+  if (policies.length === 0) {
+    return (
+      <div className="panel">
+        <h2>File a complaint</h2>
+        <p className="lede">
+          No doctrine has been published yet, so the court has no jurisdiction over
+          anything.
+        </p>
+        <p className="fineprint">
+          The registry's admin registers a standard per kind of work with{" "}
+          <code>register_policy(category, doctrine)</code>. Until at least one is
+          published, every complaint is refused at filing.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <form className="panel" onSubmit={submit}>
       <h2>File a complaint</h2>
