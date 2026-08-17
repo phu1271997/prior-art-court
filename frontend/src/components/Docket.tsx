@@ -1,0 +1,58 @@
+import type { Case } from "../lib/types";
+import { STATUS_LABEL, VERDICT_LABEL, fromWei, shortAddress } from "../lib/types";
+
+interface Props {
+  cases: Case[];
+  selected: number | null;
+  onSelect: (caseId: number) => void;
+}
+
+export function Docket({ cases, selected, onSelect }: Props) {
+  if (cases.length === 0) {
+    return (
+      <div className="panel">
+        <h2>The docket</h2>
+        <p className="lede">No cases yet. File the first one.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="panel docket">
+      <h2>The docket</h2>
+      <ul>
+        {cases.map((entry) => (
+          <li key={entry.case_id}>
+            <button
+              className={selected === entry.case_id ? "docket-row active" : "docket-row"}
+              onClick={() => onSelect(entry.case_id)}
+            >
+              <span className="docket-id">#{entry.case_id}</span>
+              <span className="docket-main">
+                <strong>{hostOf(entry.origin_url)}</strong>
+                <span className="versus">v</span>
+                <strong>{hostOf(entry.accused_url)}</strong>
+                <span className="docket-meta">
+                  {entry.category} · {fromWei(entry.bond)} GEN · {shortAddress(entry.complainant)}
+                </span>
+              </span>
+              <span className={`status status-${entry.status.toLowerCase()}`}>
+                {entry.verdict && entry.status === "RESOLVED"
+                  ? VERDICT_LABEL[entry.verdict] ?? entry.verdict
+                  : STATUS_LABEL[entry.status]}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
