@@ -17,7 +17,13 @@ decentralized validator set rather than issued by a platform.
 
 - **Network:** GenLayer **studionet**, via [GenLayer Studio](https://studio.genlayer.com)
 - **Live app:** _fill in after deploying the frontend_
-- **Contracts:** _fill in from `contracts/deployments.json` after `scripts/deploy.py`_
+- **Contracts** (studionet):
+
+| Contract | Address |
+|---|---|
+| `PolicyRegistry` | `0xFC3A3422c64c3B84eDb8B31a333C8531B8Ba1755` |
+| `PriorArtCourt` | `0x082FcFeFEE1B7642C42bd5E1eBaa6C029fe19869` |
+| `Reputation` | `0xF950283384B69900a4B13aCDEc99A7adB137CA7e` |
 
 ---
 
@@ -265,7 +271,8 @@ contracts/
   contract.py          PriorArtCourt — the intelligent contract
   policy_registry.py   PolicyRegistry — doctrine per category of work
   reputation.py        Reputation — standing, pulled from settled cases
-  policies.py          the seeded doctrine text (plain Python, read by deploy)
+  policies.py          the seeded doctrine text — plain Python, NOT a contract:
+                       it is read by scripts/deploy.py and registered on-chain
 tests/
   conftest.py                mocked VM, per-contract storage, cross-contract router
   test_court_lifecycle.py    bonds, contests, withdrawals, pull payments
@@ -275,6 +282,7 @@ tests/
   test_policy_registry.py    doctrine publication and amendment
 scripts/
   deploy.py            studionet deployment + doctrine seeding
+  doctrine-calls.txt   the same doctrine text, for pasting into Studio by hand
 frontend/
   src/lib/chain.ts     wallet, network switch, transaction polling
   src/lib/court.ts     domain-level contract calls

@@ -1,0 +1,17 @@
+{
+  "chain": "studionet",
+  "chain_id": 61999,
+  "rpc": "https://studio.genlayer.com/api",
+  "contracts": {
+    "PolicyRegistry": "0xFC3A3422c64c3B84eDb8B31a333C8531B8Ba1755",
+    "PriorArtCourt": "0x082FcFeFEE1B7642C42bd5E1eBaa6C029fe19869",
+    "Reputation": "0xF950283384B69900a4B13aCDEc99A7adB137CA7e"
+  },
+  "categories": [
+    "academic-paper",
+    "documentation",
+    "marketing-copy",
+    "news-article",
+    "source-code"
+  ]
+}
