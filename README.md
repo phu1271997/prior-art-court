@@ -303,22 +303,51 @@ frontend/
 
 ## 7. Demo script
 
-1. Connect a funded studionet wallet.
-2. File a complaint: pick `news-article`, paste two real URLs, describe what was
-   taken, stake 1 GEN. Expand the doctrine panel first — the standard being applied
-   is public before the case is filed.
-3. From a second wallet, contest it with a matching bond.
-4. Send it to the court. The overlay narrates what the network is actually doing:
-   selecting validators, each fetching both works and reasoning independently, then
-   comparing verdicts. This takes minutes, not seconds, and the reason it does is
-   the whole product.
+Two cases that exercise both halves of the design. Both use pages that render to
+real text inside the contract — worth checking before you file, because a page that
+renders to nothing is treated as no evidence rather than as no similarity.
+
+### Case A — a real reuse, decided
+
+| Field | Value |
+|---|---|
+| Kind of work | `news-article` |
+| The original | `https://en.wikipedia.org/wiki/Prior_art` |
+| The work you say copied it | `https://everything.explained.today/Prior_art/` |
+| What was taken | *This site republishes our article's prose wholesale under its own branding.* |
+| Bond | `1` GEN |
+
+A genuine mirror of a CC-BY-SA source. The court has to decide whether licensed
+republication with attribution is `DERIVATIVE_FAIR` or whether the framing makes it
+`INFRINGING` — exactly the judgement no diff can make.
+
+### Case B — the court declining to decide
+
+| Field | Value |
+|---|---|
+| Kind of work | `documentation` |
+| The original | `https://en.wikipedia.org/wiki/Prior_art` |
+| The work you say copied it | `https://docs.genlayer.com/` |
+| Bond | `1` GEN |
+
+That second URL renders to about 40 characters — it is a JavaScript shell, not a
+document. The court returns `EVIDENCE_UNAVAILABLE`, moves no money, and escalates.
+Appeal it with `https://web.archive.org/web/2024/https://docs.genlayer.com/` to see
+the final instance run over three sources.
+
+### Walking through it
+
+1. Connect a funded studionet wallet. The app switches the network for you.
+2. Expand the doctrine panel before filing — the standard being applied is public
+   before the case exists.
+3. File Case A, then contest it from a second wallet to put both bonds at stake.
+4. Send it to the court. The overlay narrates what the network is doing: selecting
+   validators, each fetching both works and reasoning independently, then comparing
+   verdicts. Minutes, not seconds — and the reason it takes minutes is the product.
 5. Read the verdict card: the finding, the traceable overlap, the adjudicator's
    confidence, and — given the most room on the page — its reasoning.
-6. Withdraw the pot. Check the transaction on the explorer.
-7. For the escalation path: file a case whose accused URL is dead, and watch the
-   court decline to decide rather than guess.
-
----
+6. Withdraw the pot, and open the transaction on the
+   [Studio explorer](https://explorer-studio.genlayer.com).
 
 ## 8. Beyond copying disputes
 
