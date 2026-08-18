@@ -52,10 +52,16 @@ export const ADDRESSES = {
 
 export const CONTRACTS_CONFIGURED = Boolean(ADDRESSES.court && ADDRESSES.policyRegistry);
 
-export const EXPLORER = "https://genlayer-explorer.vercel.app";
+export const EXPLORER = "https://explorer-studio.genlayer.com";
 
+/** Transaction page. Verified route — /transactions/<hash> 308s to this one. */
 export function explorerTx(hash: string): string {
   return `${EXPLORER}/tx/${hash}`;
+}
+
+/** Contract page. Note it is /contracts/, not /address/ — the latter 404s. */
+export function explorerContract(address: string): string {
+  return `${EXPLORER}/contracts/${address}`;
 }
 
 /** Wrap a hex address so the GenVM receives an Address rather than a string. */

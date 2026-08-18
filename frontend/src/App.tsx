@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { ADDRESSES, CHAIN_NAME, CONTRACTS_CONFIGURED, EXPLORER, connectWallet, currentAccount } from "./lib/chain";
+import {
+  ADDRESSES,
+  CHAIN_NAME,
+  CONTRACTS_CONFIGURED,
+  connectWallet,
+  currentAccount,
+  explorerContract,
+} from "./lib/chain";
 import type { WriteProgress } from "./lib/chain";
 import * as court from "./lib/court";
 import type { Case, Policy, Standing } from "./lib/types";
@@ -120,7 +127,7 @@ export default function App() {
 
         <div className="chain-info">
           <span className="network">{CHAIN_NAME}</span>
-          <a href={`${EXPLORER}/address/${ADDRESSES.court}`} target="_blank" rel="noreferrer">
+          <a href={explorerContract(ADDRESSES.court)} target="_blank" rel="noreferrer">
             court {shortAddress(ADDRESSES.court)} ↗
           </a>
           {account ? (
@@ -205,10 +212,13 @@ export default function App() {
       </main>
 
       <footer>
-        <span>
-          Deployed on GenLayer {CHAIN_NAME} · registry {shortAddress(ADDRESSES.policyRegistry)} ·
+        <span>Deployed on GenLayer {CHAIN_NAME} ·</span>{" "}
+        <a href={explorerContract(ADDRESSES.policyRegistry)} target="_blank" rel="noreferrer">
+          registry {shortAddress(ADDRESSES.policyRegistry)}
+        </a>{" · "}
+        <a href={explorerContract(ADDRESSES.reputation)} target="_blank" rel="noreferrer">
           reputation {shortAddress(ADDRESSES.reputation)}
-        </span>
+        </a>
       </footer>
 
       {busy ? (
