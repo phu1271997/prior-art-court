@@ -307,33 +307,45 @@ Two cases that exercise both halves of the design. Both use pages that render to
 real text inside the contract — worth checking before you file, because a page that
 renders to nothing is treated as no evidence rather than as no similarity.
 
-### Case A — a real reuse, decided
+### Case A — a real reuse, decided (proven `INFRINGING` at 100% overlap)
 
 | Field | Value |
 |---|---|
 | Kind of work | `news-article` |
 | The original | `https://en.wikipedia.org/wiki/Prior_art` |
-| The work you say copied it | `https://everything.explained.today/Prior_art/` |
-| What was taken | *This site republishes our article's prose wholesale under its own branding.* |
+| The work you say copied it | `https://en.m.wikipedia.org/wiki/Prior_art` |
+| What was taken | *The accused page serves our full article prose verbatim on a competing domain, with only the layout chrome different.* |
 | Bond | `1` GEN |
 
-A genuine mirror of a CC-BY-SA source. The court has to decide whether licensed
-republication with attribution is `DERIVATIVE_FAIR` or whether the framing makes it
-`INFRINGING` — exactly the judgement no diff can make.
+Same article, different host. On-chain case #4 settled this at `INFRINGING`
+100% overlap, 95% confidence, with the complainant taking the 2 GEN pot —
+exactly the judgement no diff could reach on its own.
 
-### Case B — the court declining to decide
+### Case B — two unrelated works, contested (proven `INDEPENDENT`)
 
 | Field | Value |
 |---|---|
-| Kind of work | `documentation` |
+| Kind of work | `news-article` |
 | The original | `https://en.wikipedia.org/wiki/Prior_art` |
-| The work you say copied it | `https://docs.genlayer.com/` |
+| The work you say copied it | `https://en.wikipedia.org/wiki/Copyright` |
+| What was taken | *A frivolous complaint the court is expected to reject.* |
 | Bond | `1` GEN |
 
-That second URL renders to about 40 characters — it is a JavaScript shell, not a
-document. The court returns `EVIDENCE_UNAVAILABLE`, moves no money, and escalates.
-Appeal it with `https://web.archive.org/web/2024/https://docs.genlayer.com/` to see
-the final instance run over three sources.
+Contested by a second wallet. On-chain case #3 settled this at `INDEPENDENT`
+95% confidence, with the respondent taking the 2 GEN pot — the anti-spam side
+of the same primitive.
+
+### Existing decided cases you can inspect
+
+Cases #0–#4 are already on-chain. Each demonstrates a different outcome path:
+
+| # | Category | Outcome | What it proves |
+|---|---|---|---|
+| 0 | news-article | Appealed → refund all | The court can decline to move money |
+| 1 | documentation | Uncontested → forfeited | An unopposed frivolous complaint costs the filer |
+| 2 | news-article | Appealed → refund all | Refund still applies at the final instance |
+| 3 | news-article | Contested → `INDEPENDENT`, respondent wins 2 GEN | Real settlement to the defender |
+| 4 | news-article | Contested → `INFRINGING` at 100%, complainant wins 2 GEN | Real settlement to the accuser |
 
 ### Walking through it
 

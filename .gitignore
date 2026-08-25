@@ -22,5 +22,6 @@ dist/
 .vercel
 
 # Vercel's link step appends `.env*`; keep the checked-in examples visible.
+.env*
 !.env.example
 !frontend/.env.example
