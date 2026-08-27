@@ -20,7 +20,7 @@ export function DoctrineLibrary({ policies }: Props) {
 
   if (policies.length === 0) {
     return (
-      <section className="doctrine-library" aria-label="Published doctrine">
+      <section id="doctrine" className="doctrine-library" aria-label="Published doctrine">
         <header>
           <span className="section-eyebrow">The doctrine layer</span>
           <h2>No doctrine has been published yet.</h2>
@@ -35,7 +35,7 @@ export function DoctrineLibrary({ policies }: Props) {
   }
 
   return (
-    <section className="doctrine-library" aria-label="Published doctrine">
+    <section id="doctrine" className="doctrine-library" aria-label="Published doctrine">
       <header className="doctrine-header">
         <div>
           <span className="section-eyebrow">The doctrine layer</span>
