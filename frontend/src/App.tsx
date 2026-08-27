@@ -1,23 +1,32 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  ADDRESSES,
   CHAIN_NAME,
   CONTRACTS_CONFIGURED,
   connectWallet,
   currentAccount,
-  explorerContract,
 } from "./lib/chain";
 import type { WriteProgress } from "./lib/chain";
 import * as court from "./lib/court";
 import type { Case, Policy, Standing } from "./lib/types";
-import { shortAddress } from "./lib/types";
 import { CaseView } from "./components/CaseView";
 import { ConsensusOverlay } from "./components/ConsensusOverlay";
 import { Docket } from "./components/Docket";
 import { DoctrineLibrary } from "./components/DoctrineLibrary";
 import { FileComplaint } from "./components/FileComplaint";
-import { Introduction } from "./components/Introduction";
 import { Standings } from "./components/Standings";
+import { Architecture } from "./sections/Architecture";
+import { Compare } from "./sections/Compare";
+import { Consensus } from "./sections/Consensus";
+import { Faq } from "./sections/Faq";
+import { Footer } from "./sections/Footer";
+import { Hero } from "./sections/Hero";
+import { Lifecycle } from "./sections/Lifecycle";
+import { Problem } from "./sections/Problem";
+import { Signals } from "./sections/Signals";
+import { SiteNav } from "./sections/SiteNav";
+import { UseCases } from "./sections/UseCases";
+import { Verdicts } from "./sections/Verdicts";
+import { Walkthrough } from "./sections/Walkthrough";
 
 interface Busy {
   label: string;
@@ -120,211 +129,111 @@ export default function App() {
   }
 
   return (
-    <div className="app">
-      <header className="masthead">
-        <div className="brand">
-          <h1>Prior Art Court</h1>
-          <p>Who copied whom, decided on-chain — by validators who read both works themselves.</p>
-        </div>
+    <>
+      <SiteNav account={account} onConnect={handleConnect} />
 
-        <div className="chain-info">
-          <span className="network">{CHAIN_NAME}</span>
-          <a href={explorerContract(ADDRESSES.court)} target="_blank" rel="noreferrer">
-            court {shortAddress(ADDRESSES.court)} ↗
-          </a>
-          {account ? (
-            <span className="account">{shortAddress(account)}</span>
-          ) : (
-            <button onClick={handleConnect}>Connect wallet</button>
-          )}
-        </div>
-      </header>
+      <div className="page-messages">
+        {error ? <p className="banner error">{error}</p> : null}
+        {notice ? <p className="banner notice">{notice}</p> : null}
+      </div>
 
-      {error ? <p className="banner error">{error}</p> : null}
-      {notice ? <p className="banner notice">{notice}</p> : null}
-
-      <Introduction />
-
-      <main>
-        <aside>
-          <FileComplaint
-            policies={policies}
-            disabled={!account || Boolean(busy)}
-            onSubmit={(input) =>
-              run("Filing the complaint", false, (onProgress) =>
-                court.fileCase(account!, input, onProgress)
-              )
-            }
-          />
-          <Standings
-            leaderboard={leaderboard}
-            withdrawable={withdrawable}
-            account={account}
-            busy={Boolean(busy)}
-            onWithdraw={() =>
-              run("Withdrawing your balance", false, (onProgress) =>
-                court.withdrawBalance(account!, onProgress)
-              )
-            }
-            onSync={() =>
-              run("Folding decided cases into standing", false, (onProgress) =>
-                court.syncStandings(account!, 20, onProgress)
-              )
-            }
-          />
-        </aside>
-
-        <section className="stream">
-          <Docket cases={cases} selected={selected} onSelect={setSelected} />
-          {selectedCase ? (
-            <CaseView
-              entry={selectedCase}
-              history={history}
-              account={account}
-              busy={Boolean(busy)}
-              onContest={(caseId, counterBond) =>
-                run("Contesting the complaint", false, (onProgress) =>
-                  court.contestCase(account!, caseId, counterBond, onProgress)
-                )
-              }
-              onAdjudicate={(caseId) =>
-                run("The court is hearing the case", true, (onProgress) =>
-                  court.adjudicate(account!, caseId, onProgress)
-                )
-              }
-              onAppeal={(caseId, url, fee) =>
-                run("The final instance is hearing the appeal", true, (onProgress) =>
-                  court.appeal(account!, caseId, url, fee, onProgress)
-                )
-              }
-              onWithdrawCase={(caseId) =>
-                run("Withdrawing the complaint", false, (onProgress) =>
-                  court.withdrawCase(account!, caseId, onProgress)
-                )
-              }
-            />
-          ) : (
-            <div className="panel empty">
-              <h2>Pick a case</h2>
-              <p className="lede">
-                Every case shows the two works, the standard it was judged against,
-                and the reasoning behind the verdict.
-              </p>
-            </div>
-          )}
-        </section>
-      </main>
-
+      <Hero cases={cases} policies={policies} />
+      <Problem />
+      <Lifecycle />
+      <Signals />
+      <Consensus />
+      <Verdicts cases={cases} />
+      <Architecture />
       <DoctrineLibrary policies={policies} />
+      <UseCases />
+      <Compare />
+      <Walkthrough />
+      <Faq />
 
-      <footer className="site-footer">
-        <div className="footer-row">
-          <div className="footer-block">
-            <h4>On-chain</h4>
-            <ul>
-              <li>
-                <a
-                  href={explorerContract(ADDRESSES.court)}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  court · {shortAddress(ADDRESSES.court)}
-                </a>
-              </li>
-              <li>
-                <a
-                  href={explorerContract(ADDRESSES.policyRegistry)}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  registry · {shortAddress(ADDRESSES.policyRegistry)}
-                </a>
-              </li>
-              <li>
-                <a
-                  href={explorerContract(ADDRESSES.reputation)}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  reputation · {shortAddress(ADDRESSES.reputation)}
-                </a>
-              </li>
-            </ul>
-          </div>
+      <section id="court" className="marketing-section court-app-section">
+        <div className="section-inner">
+          <header className="section-heading">
+            <span className="section-eyebrow">The court is open</span>
+            <h2>File, contest, adjudicate. Everything from here lands on-chain.</h2>
+            <p className="lede">
+              Connect a wallet holding GEN on {CHAIN_NAME} and use the court
+              below. Reads work without a wallet.
+            </p>
+          </header>
 
-          <div className="footer-block">
-            <h4>Source</h4>
-            <ul>
-              <li>
-                <a
-                  href="https://github.com/phu1271997/prior-art-court"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  GitHub repository
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://github.com/phu1271997/prior-art-court/blob/main/contracts/contract.py"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Court contract source
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://github.com/phu1271997/prior-art-court/blob/main/contracts/policies.py"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Seeded doctrine text
-                </a>
-              </li>
-            </ul>
-          </div>
+          <div className="court-app-grid">
+            <aside>
+              <FileComplaint
+                policies={policies}
+                disabled={!account || Boolean(busy)}
+                onSubmit={(input) =>
+                  run("Filing the complaint", false, (onProgress) =>
+                    court.fileCase(account!, input, onProgress)
+                  )
+                }
+              />
+              <Standings
+                leaderboard={leaderboard}
+                withdrawable={withdrawable}
+                account={account}
+                busy={Boolean(busy)}
+                onWithdraw={() =>
+                  run("Withdrawing your balance", false, (onProgress) =>
+                    court.withdrawBalance(account!, onProgress)
+                  )
+                }
+                onSync={() =>
+                  run("Folding decided cases into standing", false, (onProgress) =>
+                    court.syncStandings(account!, 20, onProgress)
+                  )
+                }
+              />
+            </aside>
 
-          <div className="footer-block">
-            <h4>Learn</h4>
-            <ul>
-              <li>
-                <a
-                  href="https://docs.genlayer.com/"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  GenLayer documentation
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://studio.genlayer.com/"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  GenLayer Studio
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://portal.genlayer.foundation/"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Builder Portal
-                </a>
-              </li>
-            </ul>
+            <section className="stream">
+              <Docket cases={cases} selected={selected} onSelect={setSelected} />
+              {selectedCase ? (
+                <CaseView
+                  entry={selectedCase}
+                  history={history}
+                  account={account}
+                  busy={Boolean(busy)}
+                  onContest={(caseId, counterBond) =>
+                    run("Contesting the complaint", false, (onProgress) =>
+                      court.contestCase(account!, caseId, counterBond, onProgress)
+                    )
+                  }
+                  onAdjudicate={(caseId) =>
+                    run("The court is hearing the case", true, (onProgress) =>
+                      court.adjudicate(account!, caseId, onProgress)
+                    )
+                  }
+                  onAppeal={(caseId, url, fee) =>
+                    run("The final instance is hearing the appeal", true, (onProgress) =>
+                      court.appeal(account!, caseId, url, fee, onProgress)
+                    )
+                  }
+                  onWithdrawCase={(caseId) =>
+                    run("Withdrawing the complaint", false, (onProgress) =>
+                      court.withdrawCase(account!, caseId, onProgress)
+                    )
+                  }
+                />
+              ) : (
+                <div className="panel empty">
+                  <h3>Pick a case from the docket.</h3>
+                  <p className="lede">
+                    Every case shows the two works, the standard it was judged
+                    against, and the reasoning behind the verdict.
+                  </p>
+                </div>
+              )}
+            </section>
           </div>
         </div>
+      </section>
 
-        <p className="footer-note">
-          Deployed on GenLayer {CHAIN_NAME}. Intelligent Contract written in
-          Python, adjudicated under Optimistic Democracy. Nothing on this page
-          is legal advice.
-        </p>
-      </footer>
+      <Footer />
 
       {busy ? (
         <ConsensusOverlay
@@ -333,7 +242,7 @@ export default function App() {
           intelligent={busy.intelligent}
         />
       ) : null}
-    </div>
+    </>
   );
 }
 
