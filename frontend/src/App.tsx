@@ -14,6 +14,7 @@ import { shortAddress } from "./lib/types";
 import { CaseView } from "./components/CaseView";
 import { ConsensusOverlay } from "./components/ConsensusOverlay";
 import { Docket } from "./components/Docket";
+import { DoctrineLibrary } from "./components/DoctrineLibrary";
 import { FileComplaint } from "./components/FileComplaint";
 import { Introduction } from "./components/Introduction";
 import { Standings } from "./components/Standings";
@@ -214,14 +215,115 @@ export default function App() {
         </section>
       </main>
 
-      <footer>
-        <span>Deployed on GenLayer {CHAIN_NAME} ·</span>{" "}
-        <a href={explorerContract(ADDRESSES.policyRegistry)} target="_blank" rel="noreferrer">
-          registry {shortAddress(ADDRESSES.policyRegistry)}
-        </a>{" · "}
-        <a href={explorerContract(ADDRESSES.reputation)} target="_blank" rel="noreferrer">
-          reputation {shortAddress(ADDRESSES.reputation)}
-        </a>
+      <DoctrineLibrary policies={policies} />
+
+      <footer className="site-footer">
+        <div className="footer-row">
+          <div className="footer-block">
+            <h4>On-chain</h4>
+            <ul>
+              <li>
+                <a
+                  href={explorerContract(ADDRESSES.court)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  court · {shortAddress(ADDRESSES.court)}
+                </a>
+              </li>
+              <li>
+                <a
+                  href={explorerContract(ADDRESSES.policyRegistry)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  registry · {shortAddress(ADDRESSES.policyRegistry)}
+                </a>
+              </li>
+              <li>
+                <a
+                  href={explorerContract(ADDRESSES.reputation)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  reputation · {shortAddress(ADDRESSES.reputation)}
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <div className="footer-block">
+            <h4>Source</h4>
+            <ul>
+              <li>
+                <a
+                  href="https://github.com/phu1271997/prior-art-court"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  GitHub repository
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://github.com/phu1271997/prior-art-court/blob/main/contracts/contract.py"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Court contract source
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://github.com/phu1271997/prior-art-court/blob/main/contracts/policies.py"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Seeded doctrine text
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <div className="footer-block">
+            <h4>Learn</h4>
+            <ul>
+              <li>
+                <a
+                  href="https://docs.genlayer.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  GenLayer documentation
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://studio.genlayer.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  GenLayer Studio
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://portal.genlayer.foundation/"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Builder Portal
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <p className="footer-note">
+          Deployed on GenLayer {CHAIN_NAME}. Intelligent Contract written in
+          Python, adjudicated under Optimistic Democracy. Nothing on this page
+          is legal advice.
+        </p>
       </footer>
 
       {busy ? (
