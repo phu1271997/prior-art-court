@@ -15,6 +15,7 @@ import { CaseView } from "./components/CaseView";
 import { ConsensusOverlay } from "./components/ConsensusOverlay";
 import { Docket } from "./components/Docket";
 import { FileComplaint } from "./components/FileComplaint";
+import { Introduction } from "./components/Introduction";
 import { Standings } from "./components/Standings";
 
 interface Busy {
@@ -140,6 +141,8 @@ export default function App() {
 
       {error ? <p className="banner error">{error}</p> : null}
       {notice ? <p className="banner notice">{notice}</p> : null}
+
+      <Introduction />
 
       <main>
         <aside>

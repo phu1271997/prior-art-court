@@ -745,6 +745,103 @@ button.secondary {
   font-family: var(--mono);
 }
 
+/* ------------------------------------------------------------------- intro */
+
+.intro {
+  margin-top: 1.25rem;
+  padding: 1.4rem 1.5rem 1.2rem;
+}
+
+.intro-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.intro-header h2 {
+  font-size: 1.35rem;
+  margin-bottom: 0.35rem;
+}
+
+.intro-header .lede {
+  margin: 0;
+  max-width: 62ch;
+  font-family: var(--serif);
+  font-size: 1rem;
+}
+
+.intro-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.4rem;
+  margin-top: 1.2rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--rule);
+}
+
+.intro-block {
+  min-width: 0;
+}
+
+.intro-block h3 {
+  font-size: 1.05rem;
+  margin: 0.15rem 0 0.55rem;
+}
+
+.intro-block p {
+  margin: 0 0 0.7rem;
+  color: var(--ink-soft);
+  font-family: var(--serif);
+  font-size: 0.98rem;
+  line-height: 1.6;
+}
+
+.intro-block p:last-child {
+  margin-bottom: 0;
+}
+
+.intro-tag {
+  display: inline-block;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 0.1rem 0.55rem;
+  margin-bottom: 0.5rem;
+}
+
+.intro-steps {
+  margin: 0.2rem 0 0.8rem;
+  padding-left: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.intro-steps li {
+  color: var(--ink-soft);
+  font-family: var(--serif);
+  font-size: 0.98rem;
+  line-height: 1.55;
+}
+
+.intro-steps li strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.intro-outcome {
+  margin: 0.4rem 0 0;
+  color: var(--ink-soft);
+  font-family: var(--serif);
+  font-size: 0.95rem;
+  font-style: italic;
+}
+
 /* ------------------------------------------------------------------ setup */
 
 .setup {
