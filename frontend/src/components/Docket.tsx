@@ -25,6 +25,8 @@ export function Docket({ cases, selected, onSelect }: Props) {
           <li key={entry.case_id}>
             <button
               className={selected === entry.case_id ? "docket-row active" : "docket-row"}
+              aria-current={selected === entry.case_id ? "true" : undefined}
+              aria-label={`Case ${entry.case_id}: ${hostOf(entry.origin_url)} versus ${hostOf(entry.accused_url)}, ${STATUS_LABEL[entry.status]}`}
               onClick={() => onSelect(entry.case_id)}
             >
               <span className="docket-id">#{entry.case_id}</span>

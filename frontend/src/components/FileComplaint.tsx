@@ -14,6 +14,25 @@ interface Props {
   }) => Promise<void>;
 }
 
+/**
+ * Mirror of the contract's `_is_http_url` rule, run client-side so a bad
+ * URL is caught at the form instead of at the RPC.
+ *
+ * The contract's guard is authoritative and it will refuse anything not
+ * http(s), so this function only exists to save the user a MetaMask popup
+ * and a rejected transaction. Match the contract's rule exactly; do not
+ * be stricter than the contract.
+ */
+function validateHttpUrl(raw: string): string | null {
+  const trimmed = raw.trim().toLowerCase();
+  if (!trimmed) return "URL is required.";
+  if (trimmed.length <= 12) return "URL is too short to be reachable.";
+  if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
+    return "The court fetches from the open web only. URL must start with http:// or https://.";
+  }
+  return null;
+}
+
 export function FileComplaint({ policies, disabled, onSubmit }: Props) {
   const [category, setCategory] = useState("");
   const [originUrl, setOriginUrl] = useState("");
@@ -27,6 +46,26 @@ export function FileComplaint({ policies, disabled, onSubmit }: Props) {
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
+
+    const originIssue = validateHttpUrl(originUrl);
+    if (originIssue) {
+      setError(`Original: ${originIssue}`);
+      return;
+    }
+    const accusedIssue = validateHttpUrl(accusedUrl);
+    if (accusedIssue) {
+      setError(`Accused: ${accusedIssue}`);
+      return;
+    }
+    if (originUrl.trim().toLowerCase() === accusedUrl.trim().toLowerCase()) {
+      setError("The two URLs point at the same page. Nothing to adjudicate.");
+      return;
+    }
+    if (claim.trim().length < 20) {
+      setError("Claim needs at least 20 characters describing what was taken.");
+      return;
+    }
+
     try {
       await onSubmit({
         category: category || policies[0]?.category || "",

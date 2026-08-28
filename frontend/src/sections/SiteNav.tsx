@@ -90,17 +90,21 @@ export function SiteNav({ account, onConnect }: Props) {
           id="site-nav-links"
           className={`site-nav-links ${mobileOpen ? "site-nav-links-open" : ""}`}
         >
-          {LINKS.map((link) => (
-            <li key={link.id}>
-              <button
-                type="button"
-                className={active === link.id ? "site-nav-link-active" : ""}
-                onClick={() => jump(link.id)}
-              >
-                {link.label}
-              </button>
-            </li>
-          ))}
+          {LINKS.map((link) => {
+            const isActive = active === link.id;
+            return (
+              <li key={link.id}>
+                <button
+                  type="button"
+                  className={isActive ? "site-nav-link-active" : ""}
+                  aria-current={isActive ? "location" : undefined}
+                  onClick={() => jump(link.id)}
+                >
+                  {link.label}
+                </button>
+              </li>
+            );
+          })}
         </ul>
 
         <div className="site-nav-meta">
