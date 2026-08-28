@@ -18,6 +18,8 @@ decentralized validator set rather than issued by a platform.
 - **Network:** GenLayer **studionet**, via [GenLayer Studio](https://studio.genlayer.com)
 - **Live app:** <https://prior-art-court.vercel.app>
 - **Source:** <https://github.com/phu1271997/prior-art-court>
+- **Deep dives:** [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · [`docs/SECURITY.md`](docs/SECURITY.md) · [`docs/ECONOMICS.md`](docs/ECONOMICS.md) · [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) · [ADRs](docs/adr/) · [`CHANGELOG.md`](CHANGELOG.md)
+- **Explorer submission draft:** [`deliverables/SUBMISSION.md`](deliverables/SUBMISSION.md)
 - **Contracts** (studionet):
 
 | Contract | Address |
