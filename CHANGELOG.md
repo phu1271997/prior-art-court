@@ -10,6 +10,22 @@ line in the release notes explicitly says otherwise.
 
 ---
 
+## [0.5.0] Phase 3 dark mode, filters, deep links - 2026-08-29
+
+Frontend-only release. Contracts unchanged.
+
+### Added
+- Dark mode with manual toggle (cycles system/dark/light). ThemeProvider
+  detects OS preference, allows manual override, persists to localStorage.
+  CSS uses both `prefers-color-scheme` and `data-theme` attribute.
+- Docket status filters: pill-style filter bar (All/Filed/Contested/
+  Escalated/Resolved) with live case count. Fully bilingual.
+- Case deep links: URL hash `#case/N` auto-selects a case and scrolls
+  to the court section. Supports browser back/forward via hashchange.
+- Theme toggle button (sun/moon) in the sticky navigation bar.
+
+---
+
 ## [0.4.0] Phase 2 bilingual UI - 2026-08-29
 
 Frontend-only release. Contracts unchanged.
