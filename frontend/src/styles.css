@@ -31,7 +31,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --ink: #ece7de;
     --ink-soft: #b3ab9f;
     --ink-faint: #837b70;
@@ -47,6 +47,23 @@
     --pending: #d8b978;
     --pending-soft: #2b2418;
   }
+}
+
+:root[data-theme="dark"] {
+  --ink: #ece7de;
+  --ink-soft: #b3ab9f;
+  --ink-faint: #837b70;
+  --paper: #171614;
+  --paper-raised: #201e1b;
+  --paper-warm: #1d1b18;
+  --rule: #35312b;
+  --rule-strong: #4c4740;
+  --seal: #d98a8a;
+  --seal-soft: #35211f;
+  --upheld: #8fc9a5;
+  --upheld-soft: #1c2b21;
+  --pending: #d8b978;
+  --pending-soft: #2b2418;
 }
 
 * {
@@ -395,6 +412,33 @@ button.secondary {
 .lang-toggle .lang-active {
   background: var(--ink);
   color: var(--paper);
+}
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 0.22rem 0.5rem;
+  cursor: pointer;
+  color: var(--ink-soft);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  gap: 0.3rem;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.theme-toggle:hover {
+  border-color: var(--rule-strong);
+  color: var(--ink);
+}
+
+.theme-icon {
+  font-style: normal;
+  font-size: 0.85rem;
+  line-height: 1;
 }
 
 .site-nav-mobile-toggle {
@@ -1640,6 +1684,45 @@ textarea:focus {
 }
 
 /* ------------------------------------------------------------------ docket */
+
+.docket-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.docket-filter {
+  padding: 0.2rem 0.6rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: transparent;
+  color: var(--ink-soft);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.docket-filter:hover {
+  border-color: var(--rule-strong);
+  color: var(--ink);
+}
+
+.docket-filter.active {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.docket-count {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+  margin-bottom: 0.5rem;
+}
 
 .docket ul {
   list-style: none;

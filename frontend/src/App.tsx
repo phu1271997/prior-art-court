@@ -56,7 +56,19 @@ export default function App() {
   const [account, setAccount] = useState<string | null>(null);
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [cases, setCases] = useState<Case[]>([]);
-  const [selected, setSelected] = useState<number | null>(null);
+  const [selected, setSelectedRaw] = useState<number | null>(() => {
+    const m = window.location.hash.match(/^#case\/(\d+)$/);
+    return m ? Number(m[1]) : null;
+  });
+
+  const setSelected = useCallback((id: number | null) => {
+    setSelectedRaw(id);
+    if (id !== null) {
+      window.history.replaceState(null, "", `#case/${id}`);
+    } else {
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
   const [history, setHistory] = useState<Record<string, unknown>[]>([]);
   const [leaderboard, setLeaderboard] = useState<Standing[]>([]);
   const [withdrawable, setWithdrawable] = useState("0");
@@ -84,6 +96,25 @@ export default function App() {
   useEffect(() => {
     currentAccount().then(setAccount).catch(() => undefined);
   }, []);
+
+  useEffect(() => {
+    function onHash() {
+      const m = window.location.hash.match(/^#case\/(\d+)$/);
+      if (m) setSelectedRaw(Number(m[1]));
+    }
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+
+  useEffect(() => {
+    if (selected !== null && cases.length > 0) {
+      const el = document.getElementById("court");
+      if (el) {
+        const y = el.getBoundingClientRect().top + window.scrollY - 80;
+        window.scrollTo({ top: y, behavior: "smooth" });
+      }
+    }
+  }, [selected !== null && cases.length > 0]);
 
   useEffect(() => {
     void refresh();

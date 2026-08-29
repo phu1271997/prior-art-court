@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ADDRESSES, CHAIN_NAME, explorerContract } from "../lib/chain";
 import { useLang, usePick } from "../lib/i18n";
 import type { Lang } from "../lib/i18n";
+import { useTheme } from "../lib/theme";
 import { shortAddress } from "../lib/types";
 
 interface Props {
@@ -47,6 +48,7 @@ export function SiteNav({ account, onConnect }: Props) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { lang, setLang } = useLang();
+  const { mode, resolved, cycle } = useTheme();
   const t = usePick(CONTENT);
 
   useEffect(() => {
@@ -157,6 +159,18 @@ export function SiteNav({ account, onConnect }: Props) {
               VI
             </button>
           </div>
+          <button
+            type="button"
+            className="theme-toggle"
+            onClick={cycle}
+            aria-label={`Theme: ${mode}`}
+            title={mode === "system" ? "Auto" : mode}
+          >
+            <i className="theme-icon" aria-hidden="true">
+              {resolved === "dark" ? "☾" : "☀"}
+            </i>
+            {mode === "system" ? "AUTO" : mode.toUpperCase()}
+          </button>
           <a
             className="site-nav-chain"
             href={explorerContract(ADDRESSES.court)}
