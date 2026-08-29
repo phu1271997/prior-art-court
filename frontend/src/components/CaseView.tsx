@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { usePick } from "../lib/i18n";
 import type { Case } from "../lib/types";
 import {
@@ -50,6 +50,8 @@ const CONTENT = {
     publishedFirst: "Published first",
     refundSettlement: "Every stake was returned. A court that cannot read the evidence does not move money.",
     forfeitSettlement: "The bond was forfeited — an uncontested complaint the court rejected.",
+    shareLink: "Copy link",
+    shareCopied: "Copied!",
   },
   vi: {
     exhibitA: "Chung cu A — ban goc",
@@ -78,6 +80,8 @@ const CONTENT = {
     publishedFirst: "Cong bo truoc",
     refundSettlement: "Moi khoan cuoc da duoc tra lai. Toa khong doc duoc chung cu thi khong chuyen tien.",
     forfeitSettlement: "Bond bi tich thu — don kien khong bi phan to ma toa bac.",
+    shareLink: "Sao chep lien ket",
+    shareCopied: "Da sao chep!",
   },
 };
 
@@ -92,6 +96,7 @@ export function CaseView({
   onWithdrawCase,
 }: Props) {
   const t = usePick(CONTENT);
+  const [copied, setCopied] = useState(false);
   const [counterBond, setCounterBond] = useState(fromWei(entry.bond));
   const [corroborationUrl, setCorroborationUrl] = useState("");
   const [appealFee, setAppealFee] = useState("0.5");
@@ -104,6 +109,14 @@ export function CaseView({
 
   const pot =
     BigInt(entry.bond || "0") + BigInt(entry.counter_bond || "0") + BigInt(entry.appeal_fee || "0");
+
+  const shareCase = useCallback(() => {
+    const url = `${window.location.origin}${window.location.pathname}#case/${entry.case_id}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => undefined);
+  }, [entry.case_id]);
 
   async function guard(action: () => Promise<void>) {
     setError(null);
@@ -121,9 +134,18 @@ export function CaseView({
           <span className="case-number">Case #{entry.case_id}</span>
           <h2>{entry.category}</h2>
         </div>
-        <span className={`status status-${entry.status.toLowerCase()}`}>
-          {STATUS_LABEL[entry.status]}
-        </span>
+        <div className="case-header-actions">
+          <button
+            type="button"
+            className="share-link"
+            onClick={shareCase}
+          >
+            {copied ? t.shareCopied : t.shareLink}
+          </button>
+          <span className={`status status-${entry.status.toLowerCase()}`}>
+            {STATUS_LABEL[entry.status]}
+          </span>
+        </div>
       </header>
 
       <div className="exhibits">

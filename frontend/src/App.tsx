@@ -14,6 +14,7 @@ import { ConsensusOverlay } from "./components/ConsensusOverlay";
 import { Docket } from "./components/Docket";
 import { DoctrineLibrary } from "./components/DoctrineLibrary";
 import { FileComplaint } from "./components/FileComplaint";
+import { ScrollToTop } from "./components/ScrollToTop";
 import { Standings } from "./components/Standings";
 import { Architecture } from "./sections/Architecture";
 import { Compare } from "./sections/Compare";
@@ -278,6 +279,7 @@ export default function App() {
       </section>
 
       <Footer />
+      <ScrollToTop />
 
       {busy ? (
         <ConsensusOverlay

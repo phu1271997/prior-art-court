@@ -1,5 +1,6 @@
 import { CHAIN_NAME } from "../lib/chain";
 import { usePick } from "../lib/i18n";
+import { useCountUp } from "../lib/useCountUp";
 import type { Case, Policy } from "../lib/types";
 
 interface Props {
@@ -69,13 +70,20 @@ export function Hero({ cases, policies }: Props) {
   ).length;
   const appealed = cases.filter((c) => c.instance === 2).length;
 
+  const aFiled = useCountUp(filed);
+  const aResolved = useCountUp(resolved);
+  const aInfringing = useCountUp(infringing);
+  const aCleared = useCountUp(cleared);
+  const aAppealed = useCountUp(appealed);
+  const aCategories = useCountUp(policies.length);
+
   const STATS = [
-    { label: t.stats.filed, value: filed.toString() },
-    { label: t.stats.resolved, value: resolved.toString() },
-    { label: t.stats.infringing, value: infringing.toString() },
-    { label: t.stats.cleared, value: cleared.toString() },
-    { label: t.stats.appealed, value: appealed.toString() },
-    { label: t.stats.categories, value: policies.length.toString() },
+    { label: t.stats.filed, value: aFiled.toString() },
+    { label: t.stats.resolved, value: aResolved.toString() },
+    { label: t.stats.infringing, value: aInfringing.toString() },
+    { label: t.stats.cleared, value: aCleared.toString() },
+    { label: t.stats.appealed, value: aAppealed.toString() },
+    { label: t.stats.categories, value: aCategories.toString() },
   ];
 
   return (

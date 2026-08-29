@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { usePick } from "../lib/i18n";
 import type { Case } from "../lib/types";
 import { STATUS_LABEL, VERDICT_LABEL, fromWei, shortAddress } from "../lib/types";
@@ -48,6 +48,32 @@ export function Docket({ cases, selected, onSelect }: Props) {
   const filtered = filter === "ALL"
     ? cases
     : cases.filter((c) => c.status === filter);
+
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      if (filtered.length === 0) return;
+      const ids = filtered.map((c) => c.case_id);
+      const idx = selected !== null ? ids.indexOf(selected) : -1;
+
+      if (event.key === "ArrowDown" || event.key === "j") {
+        event.preventDefault();
+        const next = idx < ids.length - 1 ? idx + 1 : 0;
+        onSelect(ids[next]);
+      } else if (event.key === "ArrowUp" || event.key === "k") {
+        event.preventDefault();
+        const prev = idx > 0 ? idx - 1 : ids.length - 1;
+        onSelect(ids[prev]);
+      } else if (event.key === "Escape") {
+        onSelect(filtered[0]?.case_id ?? null!);
+      }
+    },
+    [filtered, selected, onSelect]
+  );
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
 
   if (cases.length === 0) {
     return (
