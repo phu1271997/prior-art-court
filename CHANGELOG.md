@@ -10,6 +10,24 @@ line in the release notes explicitly says otherwise.
 
 ---
 
+## [0.6.0] Phase 4 UX polish - 2026-08-29
+
+Frontend-only release. Contracts unchanged.
+
+### Added
+- Animated hero counters: stats count up with eased cubic animation
+  when data loads from the chain.
+- Keyboard navigation on the docket: arrow keys (j/k) cycle through
+  cases, Escape resets selection.
+- Copy case link button in CaseView header: writes the deep link
+  (`#case/N`) to clipboard with a "Copied!" confirmation.
+- Floating scroll-to-top button: appears after scrolling past 600px,
+  smooth-scrolls back to top.
+- `useCountUp` hook for reusable number animation.
+- `ScrollToTop` component, bilingual.
+
+---
+
 ## [0.5.0] Phase 3 dark mode, filters, deep links - 2026-08-29
 
 Frontend-only release. Contracts unchanged.
