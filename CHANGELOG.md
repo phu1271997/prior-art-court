@@ -10,6 +10,30 @@ line in the release notes explicitly says otherwise.
 
 ---
 
+## [0.4.0] Phase 2 bilingual UI - 2026-08-29
+
+Frontend-only release. Contracts unchanged.
+
+### Added
+- `frontend/src/lib/i18n.tsx`: LangProvider context with browser-language
+  detection, localStorage persistence, and `<html lang>` sync.
+- `usePick()` hook for colocated content selection across all components.
+- Language toggle (EN/VI) in the sticky navigation bar with pill-style CSS.
+- Full Vietnamese translations for all 13 marketing sections (Hero,
+  Problem, Lifecycle, Signals, Consensus, Verdicts, Architecture,
+  DoctrineLibrary, UseCases, Compare, Walkthrough, FAQ, Footer).
+- Full Vietnamese translations for all 6 court app components
+  (FileComplaint, CaseView, Standings, ConsensusOverlay, DoctrineLibrary,
+  Docket) and the court section shell in App.tsx.
+
+### Changed
+- Every section and component now uses a colocated `CONTENT = { en, vi }`
+  object instead of inline English strings.
+- Contract vocabulary (INFRINGING, DERIVATIVE_FAIR, studionet, GEN) is
+  never translated, keeping on-chain values grep-able.
+
+---
+
 ## [0.3.0] Phase 1 hardening bundle - 2026-08-27
 
 Non-contract release. The three deployed contracts are unchanged; case
