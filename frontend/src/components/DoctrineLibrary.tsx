@@ -1,61 +1,75 @@
 import { useState } from "react";
 import { ADDRESSES, explorerContract } from "../lib/chain";
+import { usePick } from "../lib/i18n";
 import type { Policy } from "../lib/types";
 
 interface Props {
   policies: Policy[];
 }
 
-/**
- * A public library of every doctrine the court has jurisdiction over.
- *
- * The court refuses complaints in categories with no published standard. The
- * standards themselves are plain English, registered on-chain, and read
- * verbatim by the adjudicator at hearing time. Putting them side by side up
- * front lets a visitor see exactly what the court believes about each medium
- * before staking anything.
- */
+const CONTENT = {
+  en: {
+    eyebrow: "The doctrine layer",
+    emptyHeading: "No doctrine has been published yet.",
+    emptyLede: "Until the registry publishes a standard, the court has no jurisdiction over anything, and every complaint is refused at filing.",
+    heading: "Every standard the court applies is public before you file.",
+    ledePrefix: "The adjudicator reads the paragraph below verbatim at hearing time. Doctrine registered on-chain as",
+    ledeSuffix: ". Bringing a new medium under jurisdiction takes a paragraph, not code.",
+    policyRegistryLabel: "PolicyRegistry",
+    countSuffix: "categories · revision-locked",
+    showLess: "Show less",
+    readFull: "Read the full doctrine",
+  },
+  vi: {
+    eyebrow: "Tang an le",
+    emptyHeading: "Chua co an le nao duoc cong bo.",
+    emptyLede: "Cho den khi registry cong bo mot tieu chuan, toa khong co tham quyen, va moi don kien deu bi tu choi.",
+    heading: "Moi tieu chuan toa ap dung deu cong khai truoc khi ban nop don.",
+    ledePrefix: "Hoi dong xet xu doc doan van ben duoi nguyen van tai phien xu. An le dang ky tren chuoi la",
+    ledeSuffix: ". Dua loai hinh moi vao tham quyen chi can mot doan van, khong can code.",
+    policyRegistryLabel: "PolicyRegistry",
+    countSuffix: "loai · khoa phien ban",
+    showLess: "Thu gon",
+    readFull: "Doc toan bo an le",
+  },
+};
+
 export function DoctrineLibrary({ policies }: Props) {
+  const t = usePick(CONTENT);
   const [expanded, setExpanded] = useState<string | null>(null);
 
   if (policies.length === 0) {
     return (
-      <section id="doctrine" className="doctrine-library" aria-label="Published doctrine">
+      <section id="doctrine" className="doctrine-library" aria-label={t.eyebrow}>
         <header>
-          <span className="section-eyebrow">The doctrine layer</span>
-          <h2>No doctrine has been published yet.</h2>
-          <p className="lede">
-            Until the registry publishes a standard, the court has no
-            jurisdiction over anything, and every complaint is refused at
-            filing.
-          </p>
+          <span className="section-eyebrow">{t.eyebrow}</span>
+          <h2>{t.emptyHeading}</h2>
+          <p className="lede">{t.emptyLede}</p>
         </header>
       </section>
     );
   }
 
   return (
-    <section id="doctrine" className="doctrine-library" aria-label="Published doctrine">
+    <section id="doctrine" className="doctrine-library" aria-label={t.eyebrow}>
       <header className="doctrine-header">
         <div>
-          <span className="section-eyebrow">The doctrine layer</span>
-          <h2>Every standard the court applies is public before you file.</h2>
+          <span className="section-eyebrow">{t.eyebrow}</span>
+          <h2>{t.heading}</h2>
           <p className="lede">
-            The adjudicator reads the paragraph below verbatim at hearing time.
-            Doctrine registered on-chain as{" "}
+            {t.ledePrefix}{" "}
             <a
               href={explorerContract(ADDRESSES.policyRegistry)}
               target="_blank"
               rel="noreferrer"
             >
-              PolicyRegistry
+              {t.policyRegistryLabel}
             </a>
-            . Bringing a new medium under jurisdiction takes a paragraph, not
-            code.
+            {t.ledeSuffix}
           </p>
         </div>
         <span className="doctrine-count">
-          {policies.length} categories · revision-locked
+          {policies.length} {t.countSuffix}
         </span>
       </header>
 
@@ -80,7 +94,7 @@ export function DoctrineLibrary({ policies }: Props) {
                   onClick={() => setExpanded(isOpen ? null : policy.category)}
                   aria-expanded={isOpen}
                 >
-                  {isOpen ? "Show less" : "Read the full doctrine"}
+                  {isOpen ? t.showLess : t.readFull}
                 </button>
               ) : null}
             </article>

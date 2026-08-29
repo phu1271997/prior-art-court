@@ -7,6 +7,7 @@ import {
 } from "./lib/chain";
 import type { WriteProgress } from "./lib/chain";
 import * as court from "./lib/court";
+import { usePick } from "./lib/i18n";
 import type { Case, Policy, Standing } from "./lib/types";
 import { CaseView } from "./components/CaseView";
 import { ConsensusOverlay } from "./components/ConsensusOverlay";
@@ -33,6 +34,23 @@ interface Busy {
   intelligent: boolean;
   progress: WriteProgress | null;
 }
+
+const COURT_CONTENT = {
+  en: {
+    eyebrow: "The court is open",
+    heading: "File, contest, adjudicate. Everything from here lands on-chain.",
+    lede: `Connect a wallet holding GEN on ${CHAIN_NAME} and use the court below. Reads work without a wallet.`,
+    emptyTitle: "Pick a case from the docket.",
+    emptyLede: "Every case shows the two works, the standard it was judged against, and the reasoning behind the verdict.",
+  },
+  vi: {
+    eyebrow: "Toa dang mo",
+    heading: "Nop don, phan to, xet xu. Moi thu tu day deu len chuoi.",
+    lede: `Ket noi vi co GEN tren ${CHAIN_NAME} va su dung toa ben duoi. Doc du lieu khong can vi.`,
+    emptyTitle: "Chon mot vu tu so ghi an.",
+    emptyLede: "Moi vu kien hien thi hai tac pham, tieu chuan xet xu, va ly do dang sau phan quyet.",
+  },
+};
 
 export default function App() {
   const [account, setAccount] = useState<string | null>(null);
@@ -82,6 +100,7 @@ export default function App() {
       .catch(() => setHistory([]));
   }, [selected, cases]);
 
+  const ct = usePick(COURT_CONTENT);
   const selectedCase = cases.find((entry) => entry.case_id === selected) ?? null;
 
   async function run(
@@ -153,12 +172,9 @@ export default function App() {
       <section id="court" className="marketing-section court-app-section">
         <div className="section-inner">
           <header className="section-heading">
-            <span className="section-eyebrow">The court is open</span>
-            <h2>File, contest, adjudicate. Everything from here lands on-chain.</h2>
-            <p className="lede">
-              Connect a wallet holding GEN on {CHAIN_NAME} and use the court
-              below. Reads work without a wallet.
-            </p>
+            <span className="section-eyebrow">{ct.eyebrow}</span>
+            <h2>{ct.heading}</h2>
+            <p className="lede">{ct.lede}</p>
           </header>
 
           <div className="court-app-grid">
@@ -221,11 +237,8 @@ export default function App() {
                 />
               ) : (
                 <div className="panel empty">
-                  <h3>Pick a case from the docket.</h3>
-                  <p className="lede">
-                    Every case shows the two works, the standard it was judged
-                    against, and the reasoning behind the verdict.
-                  </p>
+                  <h3>{ct.emptyTitle}</h3>
+                  <p className="lede">{ct.emptyLede}</p>
                 </div>
               )}
             </section>

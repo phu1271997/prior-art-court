@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ADDRESSES, CHAIN_NAME, explorerContract } from "../lib/chain";
+import { useLang, usePick } from "../lib/i18n";
+import type { Lang } from "../lib/i18n";
 import { shortAddress } from "../lib/types";
 
 interface Props {
@@ -7,25 +9,50 @@ interface Props {
   onConnect: () => void;
 }
 
-const LINKS: Array<{ id: string; label: string }> = [
-  { id: "problem", label: "Problem" },
-  { id: "how-it-works", label: "How it works" },
-  { id: "verdicts", label: "Verdicts" },
-  { id: "architecture", label: "Architecture" },
-  { id: "use-cases", label: "Use cases" },
-  { id: "court", label: "The court" },
-  { id: "faq", label: "FAQ" },
-];
+const CONTENT = {
+  en: {
+    links: [
+      { id: "problem", label: "Problem" },
+      { id: "how-it-works", label: "How it works" },
+      { id: "verdicts", label: "Verdicts" },
+      { id: "architecture", label: "Architecture" },
+      { id: "use-cases", label: "Use cases" },
+      { id: "court", label: "The court" },
+      { id: "faq", label: "FAQ" },
+    ],
+    menu: "Menu",
+    close: "Close",
+    connect: "Connect wallet",
+    chainTitle: `Court contract on ${CHAIN_NAME}`,
+  },
+  vi: {
+    links: [
+      { id: "problem", label: "Vấn đề" },
+      { id: "how-it-works", label: "Cách hoạt động" },
+      { id: "verdicts", label: "Phán quyết" },
+      { id: "architecture", label: "Kiến trúc" },
+      { id: "use-cases", label: "Ứng dụng" },
+      { id: "court", label: "Phiên tòa" },
+      { id: "faq", label: "Hỏi đáp" },
+    ],
+    menu: "Menu",
+    close: "Đóng",
+    connect: "Kết nối ví",
+    chainTitle: `Contract của tòa trên ${CHAIN_NAME}`,
+  },
+};
 
 export function SiteNav({ account, onConnect }: Props) {
   const [active, setActive] = useState<string>("top");
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { lang, setLang } = useLang();
+  const t = usePick(CONTENT);
 
   useEffect(() => {
     const targets: HTMLElement[] = [];
-    for (const link of [{ id: "top", label: "" }, ...LINKS]) {
-      const el = document.getElementById(link.id);
+    for (const id of ["top", ...CONTENT.en.links.map((l) => l.id)]) {
+      const el = document.getElementById(id);
       if (el) targets.push(el);
     }
     if (targets.length === 0) return;
@@ -59,6 +86,10 @@ export function SiteNav({ account, onConnect }: Props) {
     window.scrollTo({ top: y, behavior: "smooth" });
   }, []);
 
+  function switchLang(next: Lang) {
+    if (next !== lang) setLang(next);
+  }
+
   return (
     <nav
       className={`site-nav ${scrolled ? "site-nav-scrolled" : ""}`}
@@ -83,14 +114,14 @@ export function SiteNav({ account, onConnect }: Props) {
           aria-controls="site-nav-links"
           onClick={() => setMobileOpen((v) => !v)}
         >
-          {mobileOpen ? "Close" : "Menu"}
+          {mobileOpen ? t.close : t.menu}
         </button>
 
         <ul
           id="site-nav-links"
           className={`site-nav-links ${mobileOpen ? "site-nav-links-open" : ""}`}
         >
-          {LINKS.map((link) => {
+          {t.links.map((link) => {
             const isActive = active === link.id;
             return (
               <li key={link.id}>
@@ -108,12 +139,30 @@ export function SiteNav({ account, onConnect }: Props) {
         </ul>
 
         <div className="site-nav-meta">
+          <div className="lang-toggle" role="group" aria-label="Language">
+            <button
+              type="button"
+              className={lang === "en" ? "lang-active" : ""}
+              aria-pressed={lang === "en"}
+              onClick={() => switchLang("en")}
+            >
+              EN
+            </button>
+            <button
+              type="button"
+              className={lang === "vi" ? "lang-active" : ""}
+              aria-pressed={lang === "vi"}
+              onClick={() => switchLang("vi")}
+            >
+              VI
+            </button>
+          </div>
           <a
             className="site-nav-chain"
             href={explorerContract(ADDRESSES.court)}
             target="_blank"
             rel="noreferrer"
-            title={`Court contract on ${CHAIN_NAME}`}
+            title={t.chainTitle}
           >
             {CHAIN_NAME}
           </a>
@@ -125,7 +174,7 @@ export function SiteNav({ account, onConnect }: Props) {
               className="site-nav-connect"
               onClick={onConnect}
             >
-              Connect wallet
+              {t.connect}
             </button>
           )}
         </div>

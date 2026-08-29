@@ -368,6 +368,35 @@ button.secondary {
   font-size: 0.85rem;
 }
 
+.lang-toggle {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.lang-toggle button {
+  padding: 0.22rem 0.55rem;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  background: transparent;
+  color: var(--ink-soft);
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.lang-toggle button:hover {
+  color: var(--ink);
+}
+
+.lang-toggle .lang-active {
+  background: var(--ink);
+  color: var(--paper);
+}
+
 .site-nav-mobile-toggle {
   display: none;
   background: transparent;

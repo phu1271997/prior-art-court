@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { usePick } from "../lib/i18n";
 import type { Case } from "../lib/types";
 import {
   STATUS_LABEL,
@@ -21,6 +22,65 @@ interface Props {
   onWithdrawCase: (caseId: number) => Promise<void>;
 }
 
+const CONTENT = {
+  en: {
+    exhibitA: "Exhibit A — claimed original",
+    exhibitB: "Exhibit B — alleged copy",
+    filedBy: "filed by",
+    contestedBy: "contested by",
+    uncontested: "uncontested",
+    complainantBond: "Complainant's bond",
+    counterBond: "Counter-bond",
+    atStake: "At stake",
+    contestLabel: "Contest — match the bond",
+    stakeContest: "Stake and contest",
+    withdrawComplaint: "Withdraw the complaint and take the bond back",
+    adjudicateFineprint: "Anyone may ask the court to hear a case. Every validator will fetch both pages and reason about them, so this takes a minute or two.",
+    sendToCourt: "Send to the court",
+    appealFineprint: "The first instance would not decide this on two sources. An appeal reads a third — an archive snapshot, a commit history, a dated citation — and settles which work came first. Its decision is final.",
+    corroboratingSource: "Corroborating source",
+    appealFeeLabel: "Appeal fee (GEN)",
+    appealButton: "Appeal to the final instance",
+    escalatedNotParty: "Escalated. Only the complainant or the respondent may appeal it.",
+    provenance: "Provenance",
+    firstInstance: "First instance",
+    finalInstance: "Final instance",
+    traceableOverlap: "Traceable overlap",
+    adjudicatorConfidence: "Adjudicator confidence",
+    publishedFirst: "Published first",
+    refundSettlement: "Every stake was returned. A court that cannot read the evidence does not move money.",
+    forfeitSettlement: "The bond was forfeited — an uncontested complaint the court rejected.",
+  },
+  vi: {
+    exhibitA: "Chung cu A — ban goc",
+    exhibitB: "Chung cu B — ban bi to sao chep",
+    filedBy: "nop boi",
+    contestedBy: "phan to boi",
+    uncontested: "khong bi phan to",
+    complainantBond: "Bond nguyen don",
+    counterBond: "Counter-bond",
+    atStake: "Tong tien cuoc",
+    contestLabel: "Phan to — dat bond doi ung",
+    stakeContest: "Dat cuoc va phan to",
+    withdrawComplaint: "Rut don va lay lai bond",
+    adjudicateFineprint: "Bat ky ai deu co the yeu cau toa xet xu. Moi validator se tai ca hai trang va suy luan, nen mat vai phut.",
+    sendToCourt: "Gui len toa",
+    appealFineprint: "Phien so tham khong quyet dinh duoc tu hai nguon. Phuc tham doc nguon thu ba — anh chup luu tru, lich su commit, trich dan co ngay — va chot tac pham nao cong bo truoc. Quyet dinh la chung tham.",
+    corroboratingSource: "Nguon bo chung",
+    appealFeeLabel: "Phi phuc tham (GEN)",
+    appealButton: "Khang cao len phien chung tham",
+    escalatedNotParty: "Da chuyen phuc tham. Chi nguyen don hoac bi don moi co the khang cao.",
+    provenance: "Xuat xu",
+    firstInstance: "Phien so tham",
+    finalInstance: "Phien chung tham",
+    traceableOverlap: "Trung lap co the truy vet",
+    adjudicatorConfidence: "Do tin cay cua hoi dong",
+    publishedFirst: "Cong bo truoc",
+    refundSettlement: "Moi khoan cuoc da duoc tra lai. Toa khong doc duoc chung cu thi khong chuyen tien.",
+    forfeitSettlement: "Bond bi tich thu — don kien khong bi phan to ma toa bac.",
+  },
+};
+
 export function CaseView({
   entry,
   history,
@@ -31,6 +91,7 @@ export function CaseView({
   onAppeal,
   onWithdrawCase,
 }: Props) {
+  const t = usePick(CONTENT);
   const [counterBond, setCounterBond] = useState(fromWei(entry.bond));
   const [corroborationUrl, setCorroborationUrl] = useState("");
   const [appealFee, setAppealFee] = useState("0.5");
@@ -67,19 +128,19 @@ export function CaseView({
 
       <div className="exhibits">
         <div>
-          <span className="exhibit-label">Exhibit A — claimed original</span>
+          <span className="exhibit-label">{t.exhibitA}</span>
           <a href={entry.origin_url} target="_blank" rel="noreferrer">
             {entry.origin_url}
           </a>
-          <span className="party">filed by {shortAddress(entry.complainant)}</span>
+          <span className="party">{t.filedBy} {shortAddress(entry.complainant)}</span>
         </div>
         <div>
-          <span className="exhibit-label">Exhibit B — alleged copy</span>
+          <span className="exhibit-label">{t.exhibitB}</span>
           <a href={entry.accused_url} target="_blank" rel="noreferrer">
             {entry.accused_url}
           </a>
           <span className="party">
-            {contested ? `contested by ${shortAddress(entry.respondent)}` : "uncontested"}
+            {contested ? `${t.contestedBy} ${shortAddress(entry.respondent)}` : t.uncontested}
           </span>
         </div>
       </div>
@@ -88,26 +149,26 @@ export function CaseView({
 
       <dl className="stakes">
         <div>
-          <dt>Complainant's bond</dt>
+          <dt>{t.complainantBond}</dt>
           <dd>{fromWei(entry.bond)} GEN</dd>
         </div>
         <div>
-          <dt>Counter-bond</dt>
+          <dt>{t.counterBond}</dt>
           <dd>{contested ? `${fromWei(entry.counter_bond)} GEN` : "—"}</dd>
         </div>
         <div>
-          <dt>At stake</dt>
+          <dt>{t.atStake}</dt>
           <dd>{fromWei(pot)} GEN</dd>
         </div>
       </dl>
 
-      {entry.instance > 0 ? <Verdict entry={entry} /> : null}
+      {entry.instance > 0 ? <Verdict entry={entry} t={t} /> : null}
 
       <section className="actions">
         {entry.status === "FILED" && account && !isComplainant ? (
           <div className="action">
             <label>
-              Contest — match the bond
+              {t.contestLabel}
               <input
                 type="text"
                 inputMode="decimal"
@@ -120,7 +181,7 @@ export function CaseView({
               disabled={busy}
               onClick={() => guard(() => onContest(entry.case_id, toWei(counterBond)))}
             >
-              Stake and contest
+              {t.stakeContest}
             </button>
           </div>
         ) : null}
@@ -131,31 +192,24 @@ export function CaseView({
             disabled={busy}
             onClick={() => guard(() => onWithdrawCase(entry.case_id))}
           >
-            Withdraw the complaint and take the bond back
+            {t.withdrawComplaint}
           </button>
         ) : null}
 
         {(entry.status === "FILED" || entry.status === "CONTESTED") && account ? (
           <div className="action">
-            <p className="fineprint">
-              Anyone may ask the court to hear a case. Every validator will fetch
-              both pages and reason about them, so this takes a minute or two.
-            </p>
+            <p className="fineprint">{t.adjudicateFineprint}</p>
             <button disabled={busy} onClick={() => guard(() => onAdjudicate(entry.case_id))}>
-              Send to the court
+              {t.sendToCourt}
             </button>
           </div>
         ) : null}
 
         {entry.status === "ESCALATED" && isParty ? (
           <div className="action">
-            <p className="fineprint">
-              The first instance would not decide this on two sources. An appeal
-              reads a third — an archive snapshot, a commit history, a dated
-              citation — and settles which work came first. Its decision is final.
-            </p>
+            <p className="fineprint">{t.appealFineprint}</p>
             <label>
-              Corroborating source
+              {t.corroboratingSource}
               <input
                 type="url"
                 placeholder="https://web.archive.org/…"
@@ -165,7 +219,7 @@ export function CaseView({
               />
             </label>
             <label>
-              Appeal fee (GEN)
+              {t.appealFeeLabel}
               <input
                 type="text"
                 inputMode="decimal"
@@ -180,22 +234,20 @@ export function CaseView({
                 guard(() => onAppeal(entry.case_id, corroborationUrl.trim(), toWei(appealFee)))
               }
             >
-              Appeal to the final instance
+              {t.appealButton}
             </button>
           </div>
         ) : null}
 
         {entry.status === "ESCALATED" && !isParty ? (
-          <p className="fineprint">
-            Escalated. Only the complainant or the respondent may appeal it.
-          </p>
+          <p className="fineprint">{t.escalatedNotParty}</p>
         ) : null}
       </section>
 
       {error ? <p className="error">{error}</p> : null}
 
       <section className="provenance">
-        <h3>Provenance</h3>
+        <h3>{t.provenance}</h3>
         <ol>
           {history.map((record, index) => (
             <li key={index}>
@@ -209,7 +261,7 @@ export function CaseView({
   );
 }
 
-function Verdict({ entry }: { entry: Case }) {
+function Verdict({ entry, t }: { entry: Case; t: typeof CONTENT.en }) {
   const label = VERDICT_LABEL[entry.verdict] ?? entry.verdict;
   const unreadable = entry.verdict === "EVIDENCE_UNAVAILABLE";
 
@@ -217,28 +269,23 @@ function Verdict({ entry }: { entry: Case }) {
     <section className={`verdict verdict-${entry.verdict.toLowerCase()}`}>
       <header>
         <h3>{label}</h3>
-        <span>{entry.instance === 2 ? "Final instance" : "First instance"}</span>
+        <span>{entry.instance === 2 ? t.finalInstance : t.firstInstance}</span>
       </header>
 
-      {/*
-        The reasoning is the product here, not a footnote. A verdict with no stated
-        reason is exactly the black-box moderation decision this court exists to
-        replace, so it is given the most room on the card.
-      */}
       <p className="reason">{entry.reason}</p>
 
       {!unreadable ? (
         <dl className="findings">
           <div>
-            <dt>Traceable overlap</dt>
+            <dt>{t.traceableOverlap}</dt>
             <dd>{entry.overlap_pct}%</dd>
           </div>
           <div>
-            <dt>Adjudicator confidence</dt>
+            <dt>{t.adjudicatorConfidence}</dt>
             <dd>{entry.confidence}%</dd>
           </div>
           <div>
-            <dt>Published first</dt>
+            <dt>{t.publishedFirst}</dt>
             <dd>{entry.first_publisher.toLowerCase()}</dd>
           </div>
         </dl>
@@ -248,8 +295,8 @@ function Verdict({ entry }: { entry: Case }) {
         <p className="settlement">
           {isZero(entry.winner)
             ? entry.verdict === "EVIDENCE_UNAVAILABLE"
-              ? "Every stake was returned. A court that cannot read the evidence does not move money."
-              : "The bond was forfeited — an uncontested complaint the court rejected."
+              ? t.refundSettlement
+              : t.forfeitSettlement
             : `${fromWei(entry.payout)} GEN credited to ${shortAddress(entry.winner)}.`}
         </p>
       ) : null}
