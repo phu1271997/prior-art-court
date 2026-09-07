@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { AmicusBriefs } from "./AmicusBriefs";
+import { Settlement } from "./Settlement";
 import { usePick } from "../lib/i18n";
 import type { Case } from "../lib/types";
 import {
@@ -21,6 +22,10 @@ interface Props {
   onAdjudicate: (caseId: number) => Promise<void>;
   onAppeal: (caseId: number, corroborationUrl: string, fee: bigint) => Promise<void>;
   onWithdrawCase: (caseId: number) => Promise<void>;
+  onPropose: (caseId: number, complainantShare: number) => Promise<void>;
+  onAccept: (caseId: number) => Promise<void>;
+  onReject: (caseId: number) => Promise<void>;
+  onMediate: (caseId: number) => Promise<void>;
 }
 
 const CONTENT = {
@@ -62,6 +67,8 @@ const CONTENT = {
     precedentTitle: "Precedent",
     citedPrefix: "Relied on the court's own prior decisions:",
     noPrecedentOnPoint: "The court found no prior decision on point and decided on the exhibits alone.",
+    mediatedTitle: "Settled by agreement",
+    mediatedNote: "The parties split the pot themselves — no verdict was reached, and this case sets no precedent.",
     alignFOLLOWED: "Followed precedent",
     alignDISTINGUISHED: "Distinguished precedent",
     alignDEPARTED: "Departed from precedent",
@@ -104,6 +111,8 @@ const CONTENT = {
     precedentTitle: "An le",
     citedPrefix: "Da dua vao cac phan quyet truoc cua chinh toa:",
     noPrecedentOnPoint: "Toa khong tim thay an le lien quan va xet xu chi dua tren chung cu.",
+    mediatedTitle: "Chot bang thoa thuan",
+    mediatedNote: "Cac ben tu chia tien cuoc — khong co phan quyet, va vu nay khong tao an le.",
     alignFOLLOWED: "Tuan theo an le",
     alignDISTINGUISHED: "Phan biet an le",
     alignDEPARTED: "Di nguoc an le",
@@ -119,6 +128,10 @@ export function CaseView({
   onAdjudicate,
   onAppeal,
   onWithdrawCase,
+  onPropose,
+  onAccept,
+  onReject,
+  onMediate,
 }: Props) {
   const t = usePick(CONTENT);
   const [copied, setCopied] = useState(false);
@@ -210,6 +223,37 @@ export function CaseView({
       </dl>
 
       {entry.instance > 0 ? <Verdict entry={entry} history={history} t={t} /> : null}
+
+      {entry.resolution === "MEDIATED" ? (
+        <section className="verdict verdict-mediated">
+          <header>
+            <h3>{t.mediatedTitle}</h3>
+          </header>
+          <p className="reason">{t.mediatedNote}</p>
+          {entry.settlement_share >= 0 && entry.settlement_share <= 100 ? (
+            <dl className="findings">
+              <div>
+                <dt>{t.filedBy} {shortAddress(entry.complainant)}</dt>
+                <dd>{entry.settlement_share}%</dd>
+              </div>
+              <div>
+                <dt>{t.contestedBy} {shortAddress(entry.respondent)}</dt>
+                <dd>{100 - entry.settlement_share}%</dd>
+              </div>
+            </dl>
+          ) : null}
+        </section>
+      ) : null}
+
+      <Settlement
+        entry={entry}
+        account={account}
+        busy={busy}
+        onPropose={onPropose}
+        onAccept={onAccept}
+        onReject={onReject}
+        onMediate={onMediate}
+      />
 
       <section className="actions">
         {entry.status === "FILED" && account && !isComplainant ? (

@@ -280,6 +280,26 @@ export default function App() {
                       court.withdrawCase(account!, caseId, onProgress)
                     )
                   }
+                  onPropose={(caseId, share) =>
+                    run("Proposing a settlement", false, (onProgress) =>
+                      court.proposeSettlement(account!, caseId, share, onProgress)
+                    )
+                  }
+                  onAccept={(caseId) =>
+                    run("Accepting the settlement", false, (onProgress) =>
+                      court.acceptSettlement(account!, caseId, onProgress)
+                    )
+                  }
+                  onReject={(caseId) =>
+                    run("Clearing the settlement offer", false, (onProgress) =>
+                      court.rejectSettlement(account!, caseId, onProgress)
+                    )
+                  }
+                  onMediate={(caseId) =>
+                    run("The AI mediator is reading both works", true, (onProgress) =>
+                      court.requestMediation(account!, caseId, onProgress)
+                    )
+                  }
                 />
               ) : (
                 <div className="panel empty">

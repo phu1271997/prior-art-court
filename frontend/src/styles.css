@@ -2946,3 +2946,89 @@ textarea:focus {
 .case-law-open:hover {
   text-decoration: underline;
 }
+
+/* --------------------------------------------------- mediation & settlement track */
+
+.settlement-panel {
+  margin: 1.25rem 0;
+  padding: 1.15rem 1.25rem;
+  background: var(--paper-warm);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+.settlement-panel > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.settlement-panel h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.settlement-panel h4 {
+  margin: 0 0 0.4rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.settlement-pot {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+.mediation-card {
+  margin-top: 0.9rem;
+  padding: 0.9rem 1rem;
+  background: var(--paper-raised);
+  border-left: 3px solid var(--pending);
+  border-radius: 6px;
+}
+.mediation-headline {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+}
+.mediation-reason {
+  margin: 0 0 0.7rem;
+  font-family: var(--serif);
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+.settlement-offer {
+  margin-top: 0.9rem;
+  padding: 0.9rem 1rem;
+  background: var(--paper-raised);
+  border-left: 3px solid var(--upheld);
+  border-radius: 6px;
+}
+.offer-split {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+}
+.offer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+}
+.propose-form {
+  margin-top: 0.9rem;
+}
+.propose-form input[type="range"] {
+  width: 100%;
+  margin-top: 0.4rem;
+}
+.propose-preview {
+  margin: 0.5rem 0 0.7rem;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+.verdict-mediated {
+  border-left-color: var(--pending);
+}
+.verdict-mediated h3 {
+  color: var(--pending);
+}

@@ -40,7 +40,16 @@ export interface Case {
   /** Stare decisis (precedent engine). Prior case ids the court relied on. */
   cited_precedents: number[];
   precedent_alignment: PrecedentAlignment;
+  /** Mediation & settlement track (pre-trial). */
+  settlement_proposer: string;
+  settlement_share: number; // complainant's proposed share; 255 = no live proposal
+  mediation_share: number; // AI mediator's recommended share; 255 = not run
+  mediation_reason: string;
+  resolution: string; // "" | "MEDIATED"
 }
+
+export const NO_SHARE = 255;
+export const MEDIATION_NOT_RUN = 255;
 
 export type PrecedentAlignment =
   | "FOLLOWED"

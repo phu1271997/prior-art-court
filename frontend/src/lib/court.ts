@@ -108,6 +108,44 @@ export function withdrawBalance(account: string, onProgress?: Progress): Promise
   return write(account, ADDRESSES.court, "withdraw", [], { onProgress });
 }
 
+/* ------------------------------------------------ mediation & settlement track */
+
+export function proposeSettlement(
+  account: string,
+  caseId: number,
+  complainantShare: number,
+  onProgress?: Progress
+): Promise<WriteResult> {
+  return write(account, ADDRESSES.court, "propose_settlement", [caseId, complainantShare], {
+    onProgress,
+  });
+}
+
+export function acceptSettlement(
+  account: string,
+  caseId: number,
+  onProgress?: Progress
+): Promise<WriteResult> {
+  return write(account, ADDRESSES.court, "accept_settlement", [caseId], { onProgress });
+}
+
+export function rejectSettlement(
+  account: string,
+  caseId: number,
+  onProgress?: Progress
+): Promise<WriteResult> {
+  return write(account, ADDRESSES.court, "reject_settlement", [caseId], { onProgress });
+}
+
+/** Intelligent: the mediator fetches both works and proposes a split. Slow, like adjudicate. */
+export function requestMediation(
+  account: string,
+  caseId: number,
+  onProgress?: Progress
+): Promise<WriteResult> {
+  return write(account, ADDRESSES.court, "request_mediation", [caseId], { onProgress });
+}
+
 export function syncStandings(
   account: string,
   limit = 20,

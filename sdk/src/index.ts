@@ -104,6 +104,12 @@ export interface CaseRecord {
   /** Stare decisis: prior case ids the court relied on, and how it aligned. */
   cited_precedents?: number[];
   precedent_alignment?: "FOLLOWED" | "DISTINGUISHED" | "DEPARTED" | "NONE";
+  /** Mediation & settlement track (pre-trial). */
+  settlement_proposer?: string;
+  settlement_share?: number;
+  mediation_share?: number;
+  mediation_reason?: string;
+  resolution?: "" | "MEDIATED";
 }
 
 export interface StandingRecord {
@@ -301,6 +307,31 @@ export class PriorArtCourt {
   /** Pull whatever the court owes this account. */
   async withdraw(account: unknown): Promise<string> {
     return this.writeContract(account, this.addresses.court, "withdraw", []);
+  }
+
+  // ----- mediation & settlement track (pre-trial)
+
+  /** Propose ending a contested case by splitting the pot (complainant gets `share` %). */
+  async proposeSettlement(opts: { account: unknown; caseId: number; complainantShare: number }): Promise<string> {
+    return this.writeContract(opts.account, this.addresses.court, "propose_settlement", [
+      opts.caseId,
+      opts.complainantShare,
+    ]);
+  }
+
+  /** Accept the standing settlement proposal (the counterparty saying yes). */
+  async acceptSettlement(opts: { account: unknown; caseId: number }): Promise<string> {
+    return this.writeContract(opts.account, this.addresses.court, "accept_settlement", [opts.caseId]);
+  }
+
+  /** Withdraw the standing settlement proposal from the table. */
+  async rejectSettlement(opts: { account: unknown; caseId: number }): Promise<string> {
+    return this.writeContract(opts.account, this.addresses.court, "reject_settlement", [opts.caseId]);
+  }
+
+  /** Ask the AI mediator to propose a fair split. Intelligent; advisory only. */
+  async requestMediation(opts: { account: unknown; caseId: number }): Promise<string> {
+    return this.writeContract(opts.account, this.addresses.court, "request_mediation", [opts.caseId]);
   }
 
   // ----- amicus (Phase 9)

@@ -10,6 +10,73 @@ line in the release notes explicitly says otherwise.
 
 ---
 
+## [0.13.0] Milestone — Mediation & Settlement Track - 2026-09-07
+
+Major feature release. **Adds the pre-trial path a real court leans on hardest:
+parties can end a dispute by agreement instead of by verdict**, and a GenLayer
+mediator can propose a fair split first. Contract redeployed (the `Case` layout
+gained five fields).
+
+### Why this matters
+Before this release a contested case had exactly one exit: a full, LLM-heavy
+hearing that took minutes and produced a winner and a loser. Most real disputes
+never go that far — the parties would rather take a certain split than gamble the
+whole pot on a verdict. Now they can: either side proposes how to divide the pot,
+the other accepts, and the case closes with both sides paid, no hearing burned.
+
+The GenLayer-native part is the **mediator**. `request_mediation` reads both works
+and the doctrine inside the contract and proposes a fair split *with its reasoning*
+— the one place the court asks the model for a number. It is deliberately
+harmless: the number moves no money by itself. A settlement still executes only
+when **both parties accept a proposal**, so the court keeps its central guarantee
+(the LLM never sets an amount that moves without the parties' own consent) while
+still putting on-chain, consensus-backed reasoning to work before trial.
+
+### Added
+- **Five new `Case` fields** — `settlement_proposer`, `settlement_share`,
+  `mediation_share`, `mediation_reason`, `resolution` (`""` / `MEDIATED`).
+- **`propose_settlement(case_id, complainant_share)`** — either party offers a
+  split (0-100% to the complainant, the rest to the respondent). A standing offer
+  only; a new proposal replaces the old one.
+- **`accept_settlement(case_id)`** — the counterparty accepts and the case
+  resolves: the pot is split on the agreed percentages, both parties credited,
+  no verdict reached. The proposer cannot accept their own offer.
+- **`reject_settlement(case_id)`** — clear the offer from the table.
+- **`request_mediation(case_id)`** — [INTELLIGENT] the mediator fetches both
+  works, applies the doctrine, and records a recommended split plus rationale.
+  Consensus makes the recommendation trustworthy: every validator must agree on
+  the directional lean and land within `MEDIATION_TOLERANCE` of the same split.
+  Guarded by the same per-case anti-injection canary as the adjudicator.
+- **`_settle_mediated`** splits the pot with a remainder rule (the respondent
+  gets the rest), so a settlement conserves the pot to the wei and never mints or
+  loses value. A mediated case sets **no precedent** — the parties bargained, the
+  court did not decide — and every amicus stake is refunded, since no stance was
+  vindicated by a finding.
+- **Lifecycle guards** — settlement and mediation are gated to a `CONTESTED` case
+  that has not yet been heard (`instance == 0`), and to the two parties only.
+- **`_mediation_prompt`** — a mediator-role prompt (not a judge) that asks for a
+  `lean`, a `complainant_share`, and a rationale addressed to both parties.
+- **New frontend `Settlement` component** (bilingual EN/VI): a pot-split slider
+  with a live preview, the standing-offer card with accept/reject for the
+  counterparty, the "request AI mediation" action, and the mediator's
+  recommendation card with a one-click "propose this split". A "settled by
+  agreement" banner replaces the verdict card on mediated cases.
+- **`court.ts` + SDK wrappers**: `proposeSettlement`, `acceptSettlement`,
+  `rejectSettlement`, `requestMediation`, and the five new `Case` fields.
+- **12 new tests** in `tests/test_settlement.py`: an agreed split pays exactly the
+  agreed percentages and conserves the pot to the wei; a mediated case is not
+  precedent; settlement is gated to a contested, un-heard case and to the parties;
+  the proposer cannot accept their own offer; a share over 100 and a rejected
+  proposal are refused; the mediator records a recommendation without moving
+  money, leaves none when the evidence is unreadable, and the parties can settle
+  on its number.
+
+### Notes
+- Total suite: **166 tests** (was 154).
+- Redeploy required — the `Case` layout changed.
+
+---
+
 ## [0.12.0] Milestone — Precedent Engine (Stare Decisis) - 2026-09-07
 
 Major feature release. **Turns a sequence of unrelated verdicts into a body of
