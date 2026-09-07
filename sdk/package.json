@@ -1,0 +1,38 @@
+{
+  "name": "@prior-art-court/sdk",
+  "version": "0.10.0",
+  "description": "TypeScript SDK for embedding the Prior Art Court doctrine layer into your own site. Read the docket, file complaints, listen for verdicts.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "keywords": [
+    "genlayer",
+    "prior-art-court",
+    "web3",
+    "doctrine",
+    "consensus"
+  ],
+  "author": "Prior Art Court contributors",
+  "license": "MIT",
+  "peerDependencies": {
+    "genlayer-js": "^1.1.8"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  }
+}

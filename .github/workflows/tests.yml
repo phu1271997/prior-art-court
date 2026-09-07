@@ -1,0 +1,54 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  fast-lane:
+    name: Fast test lane (mocked VM, no network)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install project dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run the fast test lane
+        # Fast lane is the default `pytest` invocation — pytest.ini pins
+        # `addopts = -q -m "not slow"` so the slow live-studionet lane is
+        # deselected. The whole suite runs against gltest.direct with
+        # strict_mocks=True; every fetch and every prompt is mocked, so this
+        # job never needs the internet or an LLM.
+        run: pytest tests/ -q
+
+  frontend-typecheck:
+    name: Frontend typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+
+      - name: Type-check + build
+        working-directory: frontend
+        run: npm run build

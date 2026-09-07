@@ -10,6 +10,71 @@ line in the release notes explicitly says otherwise.
 
 ---
 
+## [0.10.0] Phase 8 Ecosystem + CI + SDK + Seed Script - 2026-09-07
+
+Ecosystem release. **Doctrine seed** gains three new categories (nine total).
+**CI** goes live on GitHub Actions. A publishable **npm SDK** ships under
+`sdk/` and a **demo-case seeder** script under `scripts/seed_demo_cases.py`.
+No contract code changes — the four Phase 7 contracts stay put; the
+PolicyRegistry gains three new doctrine entries that any admin can register
+against an existing deploy.
+
+### Added
+- **Three ecosystem doctrines** in `contracts/policies.py`:
+  - **`sla-clause`** — disputes over whether a written SLA clause was tripped.
+    Directs the adjudicator to apply the SLA's own definitions rather than a
+    generic one, and to favour the customer's ordinary reading when the term
+    is ambiguous (the vendor had the drafting pen).
+  - **`academic-misconduct`** — plagiarism / duplicate submission / undisclosed
+    authorship. Carves out self-plagiarism between preprint and final version;
+    treats duplicate publication across two venues without cross-reference as
+    INFRINGING.
+  - **`bug-bounty-severity`** — disputes over the vendor-assigned severity of a
+    reported vulnerability. Verdict INFRINGING means the assigned severity is
+    UNDERstated relative to the vendor's rubric; INDEPENDENT means it is
+    correct or overstated. Directs the adjudicator to judge a vulnerability
+    chain on the demonstrated impact, not the parts.
+- **GitHub Actions CI** at `.github/workflows/tests.yml`. Two jobs on every
+  push and PR: `fast-lane` (Python 3.13, mocked VM, 135 tests) and
+  `frontend-typecheck` (Node 20, `npm run build` — full `tsc -b` + Vite bundle).
+- **`sdk/` npm package** — a thin, framework-agnostic TypeScript SDK any
+  third-party site can install with `npm install @prior-art-court/sdk
+  genlayer-js`. Exports one class, `PriorArtCourt`, with a domain surface —
+  `listCases`, `getCase`, `getHistory`, `listPolicies`, `getStanding`,
+  `getLeaderboard`, `getBadges`, `getWithdrawable`, `fileCase`, `contestCase`,
+  `adjudicate`, `appeal`, `withdraw`. Package version `0.10.0`. Design rules:
+  no secret in the bundle, no default addresses (construct or nothing), and
+  a domain surface rather than a contract surface. Ships with a README that
+  documents every method and the Optimistic-Democracy reasoning.
+- **`scripts/seed_demo_cases.py`** — post-deploy demo seeder. Files six sample
+  cases across `news-article`, `source-code`, `academic-paper`,
+  `documentation`, `marketing-copy`, and `sla-clause`, drives four of them to
+  full adjudication. Runs against studionet or localnet, safe to re-run
+  (never touches existing cases), and cites public real URLs so exhibits are
+  actually fetchable at hearing time.
+- **`scripts/deploy.py`** updated in Phase 7 already registers every seeded
+  doctrine, so a fresh deploy now writes nine doctrines to the registry.
+- **8 new tests** in `tests/test_ecosystem_verticals.py` covering doctrine
+  count (nine), 120-char guard for the three new categories, sla-clause's
+  favour-customer clause, academic-misconduct's self-plagiarism carve-out,
+  bug-bounty's chained-vulnerability rule, and canonical kebab-case slug
+  discipline for every seeded category. Total suite: **135 tests**.
+
+### Changed
+- No contract code changed in this phase — Phase 7 addresses stay valid; a
+  fresh deploy against the same code writes the nine doctrines instead of
+  six.
+
+### Notes
+- The Vercel-deployed frontend does not need a rebuild for the new
+  doctrines to appear — it reads categories from the registry at load time.
+  Registering the three new doctrines on-chain (either at fresh deploy or via
+  the Admin panel from Phase 7) is enough for them to show up in the
+  Doctrine Library, the file-complaint category picker, and the case
+  verdict rendering.
+
+---
+
 ## [0.9.0] Phase 7 Achievements + Reputation Gate + Admin - 2026-09-07
 
 Major release. **A new fourth contract** (`Achievements`) joins the deploy
