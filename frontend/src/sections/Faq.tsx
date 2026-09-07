@@ -23,7 +23,7 @@ const CONTENT = {
       },
       {
         q: "What kinds of work can the court judge?",
-        a: "Whatever has a published doctrine. Five categories are seeded today: news articles, source code, academic papers, documentation, and marketing copy. Bringing a new medium under the court's jurisdiction takes no code; it takes a paragraph of English registered in the PolicyRegistry contract stating what counts as protected expression, what reuse is legitimate, and what must not be treated as copying.",
+        a: "Whatever has a published doctrine. Six categories are seeded today: news articles, source code, academic papers, documentation, marketing copy, and patent claims (added v0.8 — with a two-step §102 anticipation / §103 obviousness framework and auto-fetched archive snapshots for precedence). Bringing a new medium under the court's jurisdiction takes no code; it takes a paragraph of English registered in the PolicyRegistry contract stating what counts as protected expression, what reuse is legitimate, and what must not be treated as copying.",
       },
       {
         q: "How is this different from a diff or a plagiarism checker?",

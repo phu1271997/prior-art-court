@@ -10,6 +10,65 @@ line in the release notes explicitly says otherwise.
 
 ---
 
+## [0.8.0] Phase 6 Patent Domain + Multi-Source - 2026-09-07
+
+Contract + doctrine release. **All three contracts are redeployed** and a new
+doctrine is registered on-chain. New addresses in `contracts/deployments.json`.
+
+### Added
+- **`patent-claim` doctrine** in `contracts/policies.py`. First domain where
+  the court's three verdicts (INFRINGING / DERIVATIVE_FAIR / INDEPENDENT) map
+  onto the two-question prior-art analysis from U.S. patent law: §102
+  anticipation (does the reference disclose every element of the claim,
+  arranged as claimed?) and §103 obviousness (would a person of ordinary
+  skill find the combination obvious over the reference, weighing the Graham
+  factors?). The doctrine faithfully applies the substance without claiming
+  jurisdiction — this is a doctrine layer, not a court of any nation.
+- **`_domain_note` prompt injector.** New helper adds a domain-specific
+  framing block to both intelligent prompts based on the case category. For
+  patent-claim it walks the adjudicator through the two-step analysis
+  explicitly and requires each claim element to be marked PRESENT/MISSING in
+  the `reason` field. For source-code and academic-paper it reinforces the
+  doctrine-specific weighting the LLM tends to under-apply. Other categories
+  get a no-op note.
+- **Auto-corroboration via archived snapshots.** Every first-instance
+  hearing now fetches up to four supplementary sources — Wayback and
+  archive.today for BOTH exhibit URLs — inside the non-deterministic block,
+  bounded to `MAX_SNAPSHOT_CHARS` (3000) each. Each snapshot renders as its
+  own fenced `<<<SNAP … SNAP>>>` block with a stable label
+  (`origin-wayback`, `origin-archiveph`, `accused-wayback`,
+  `accused-archiveph`). Unfetchable or thin snapshots are dropped silently;
+  the prompt says "no archived snapshots were reachable" and the hearing
+  proceeds on the two primary exhibits alone.
+- **New helpers**: `_snapshot_urls(url)`, `_fetch_snapshots(origin, accused)`,
+  `_render_snapshots(list)`, `_domain_note(category)`.
+- **8 new tests** in `tests/test_patent_and_snapshots.py`: doctrine
+  registration and shape, patent-claim filing, snapshot rendering in prompt,
+  fallback when no snapshots reach, thin-snapshot silent drop, patent
+  framing appears in patent prompt, and does NOT appear in non-patent
+  prompts. Total suite: **114 tests**.
+- **UseCases section (frontend)** now leads with the Patent-claim prior-art
+  use case in both languages.
+- **FAQ copy** updated: six categories, and specifically calls out the
+  Phase 6 §102/§103 framework and auto-fetched archives.
+
+### Changed
+- `_first_instance_prompt` signature adds an optional `snapshots` argument
+  (default `None`) and threads them into the prompt after Exhibit B, before
+  the multi-perspective block. Older callers pass `None` and get the "no
+  snapshots reachable" message.
+- `_appeal_prompt` also receives the domain note so a patent appeal is not
+  handed a copying-dispute framing.
+
+### Notes
+- Snapshot fetches add ~4 network round-trips per validator per first-
+  instance hearing. Cost is real; on studionet with strict mocks it is
+  free. The value is: a patent-claim hearing sees dated public evidence for
+  BOTH exhibits without any party having to hunt down an archive URL — this
+  is what makes the primitive competitive with legal-tech search tools.
+
+---
+
 ## [0.7.0] Phase 5 AI Consensus Overhaul - 2026-09-07
 
 Contract release. **All three contracts are redeployed** — the intelligent

@@ -12,6 +12,12 @@ const CONTENT = {
       "numbers.",
     cases: [
       {
+        tag: "Patent-claim prior-art",
+        title: "Is this claim anticipated or obvious over the prior art?",
+        body: "Applicant stakes a bond. Opponent stakes the same. The court reads the claim and the prior-art reference, walks the two-step §102/§103 analysis (element-by-element anticipation, then obviousness by the Graham factors), and decides — with auto-fetched archive snapshots proving which came first.",
+        doctrine: "patent-claim",
+      },
+      {
         tag: "Freelance escrow",
         title: "Did the deliverable match the brief?",
         body: "Client stakes payment. Freelancer stakes their fee. The court reads the brief, reads the delivery, applies the doctrine registered for the medium, and decides whether the work meets the standard.",
@@ -60,6 +66,12 @@ const CONTENT = {
       "su kien nam tren web va tieu chuan viet bang loi thay vi " +
       "bang so.",
     cases: [
+      {
+        tag: "Prior-art patent claim",
+        title: "Claim co bi anticipated hoac obvious so voi prior art khong?",
+        body: "Ben nop stake bond. Ben doi khang stake bang. Toa doc claim va tai lieu prior art, chay hai buoc phan tich §102/§103 (kiem tra tung element de xac dinh anticipation, roi obviousness theo Graham factors), va chot — kem snapshot luu tru tu dong lam bang chung cong bo truoc.",
+        doctrine: "patent-claim",
+      },
       {
         tag: "Ky quy freelance",
         title: "San pham co dung yeu cau khong?",

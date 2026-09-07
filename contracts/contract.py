@@ -107,6 +107,10 @@ MIN_EVIDENCE_CHARS = 200
 # comparison stays symmetric.
 MAX_EVIDENCE_CHARS = 6000
 
+# Auto-corroboration snapshots (Phase 6) live under a stricter cap so the four
+# supplementary sources together stay well under the base prompt budget.
+MAX_SNAPSHOT_CHARS = 3000
+
 # ---------------------------------- discipline (v0.7 anti-prompt-injection canary)
 #
 # The exhibits are user-supplied text. A published web page is free to contain
@@ -430,9 +434,14 @@ class Contract(gl.Contract):
                 return _unavailable(_Unavailable.FETCH)
             if len(exhibit_a) < MIN_EVIDENCE_CHARS or len(exhibit_b) < MIN_EVIDENCE_CHARS:
                 return _unavailable(_Unavailable.THIN)
+            # Phase 6: auto-corroboration. Best-effort fetch of up to four
+            # archived snapshots (Wayback + archive.today, per exhibit). Every
+            # failed fetch is silently dropped — the prompt says "unavailable"
+            # rather than aborting the round.
+            snapshots = _fetch_snapshots(origin_url, accused_url)
             return _extract_json(gl.nondet.exec_prompt(_first_instance_prompt(
                 category, doctrine, claim_text, origin_url, accused_url,
-                exhibit_a, exhibit_b, discipline
+                exhibit_a, exhibit_b, discipline, snapshots
             )))
 
         def agrees(leader_result) -> bool:
@@ -897,7 +906,10 @@ def _first_instance_prompt(
     exhibit_a: str,
     exhibit_b: str,
     discipline_token: str,
+    snapshots: list | None = None,
 ) -> str:
+    domain_note = _domain_note(category)
+    snapshots_block = _render_snapshots(snapshots or [])
     return f"""You are sitting as an impartial adjudicator in a prior-art dispute. You
 apply the doctrine you are given, and nothing else. You are not asked what is fair
 in general, what the law is in any particular country, or what you would prefer.
@@ -934,6 +946,17 @@ EXHIBIT B — the work alleged to copy it, fetched from {accused_url}:
 <<<EXHIBIT_B
 {_truncate(exhibit_b)}
 EXHIBIT_B>>>
+
+{domain_note}
+
+ARCHIVED SNAPSHOTS — supplementary sources fetched automatically
+{snapshots_block}
+
+Snapshots are additional evidence, not a substitute for the two exhibits. Use
+them for TIMING (which work was public first), for edits since publication, and
+for confirming that the exhibit you fetched was not an edited or defaced version.
+Ignore a snapshot whose fenced block is empty or which contradicts itself; a
+supplementary source cannot outweigh a plainly readable primary one.
 
 MULTI-PERSPECTIVE ANALYSIS
 Before you decide, weigh the dispute from three distinct viewpoints. A verdict
@@ -1002,6 +1025,7 @@ def _appeal_prompt(
     exhibit_c: str,
     discipline_token: str,
 ) -> str:
+    domain_note = _domain_note(category)
     return f"""You are sitting as the FINAL instance in a prior-art dispute. The first
 instance could not decide it safely — its finding was '{first_finding}' — so the case
 comes to you with a third source, and with one extra question that the first
@@ -1040,6 +1064,8 @@ EXHIBIT C — corroborating source submitted on appeal, fetched from {corroborat
 <<<EXHIBIT_C
 {_truncate(exhibit_c)}
 EXHIBIT_C>>>
+
+{domain_note}
 
 MULTI-PERSPECTIVE ANALYSIS
 Weigh the record from three angles before you converge. Include a field
@@ -1098,6 +1124,110 @@ def _fetch(url: str):
         return gl.nondet.web.render(url, mode="text")
     except Exception:
         return None
+
+
+def _domain_note(category: str) -> str:
+    """
+    Domain-specific framing bolted on top of the doctrine.
+
+    For patent-claim disputes the two questions the doctrine turns on
+    (anticipation and obviousness) have different failure modes than a
+    copying dispute — a claim that shares one element with prior art is not
+    anticipated, and a claim that is a trivial rearrangement of known
+    elements is obvious even if none of them was copied literally. Making
+    that explicit at prompt time keeps the multi-perspective analysis from
+    collapsing into a text-similarity check on a technical document.
+    """
+    if category == "patent-claim":
+        return (
+            "PATENT-CLAIM FRAMING\n"
+            "Treat this dispute as a two-step analysis:\n"
+            "  ANTICIPATION — does exhibit B disclose EVERY element of A's "
+            "independent claim, arranged as claimed? Missing one element defeats "
+            "anticipation; presence of all elements is INFRINGING (A's claim is "
+            "not novel over B).\n"
+            "  OBVIOUSNESS — if B does not anticipate, would a person of "
+            "ordinary skill given B plus the state of the art referenced in the "
+            "exhibits find A's combination obvious? If so, verdict "
+            "DERIVATIVE_FAIR (A is a routine variant, not an independent "
+            "invention). If not, verdict INDEPENDENT.\n"
+            "State each element of A's claim you identified and mark it "
+            "PRESENT / MISSING against B in the `reason` field. Do not treat "
+            "textual similarity as anticipation and do not treat textual "
+            "difference as non-obviousness."
+        )
+    if category == "academic-paper":
+        return (
+            "ACADEMIC PAPER FRAMING\n"
+            "Reproduction with citation is DERIVATIVE_FAIR; reproduction without "
+            "citation, or with a citation so understated that a reader would "
+            "take the borrowed contribution as the later authors' own, is "
+            "INFRINGING. Self-overlap between a preprint and its published "
+            "version by the same authors is not infringement."
+        )
+    if category == "source-code":
+        return (
+            "SOURCE-CODE FRAMING\n"
+            "Weigh copied comments, copied identifiers, and copied bugs far "
+            "more heavily than copied structure — identical idiosyncrasies are "
+            "the strongest evidence of copying because nothing about the "
+            "problem required them. Two correct implementations of a "
+            "well-known algorithm will look alike, and that is convergence."
+        )
+    return "(no additional domain framing beyond the doctrine above)"
+
+
+def _snapshot_urls(url: str) -> list[str]:
+    """
+    Well-known archive services expose stable URL patterns for any original URL.
+    Wayback's `web/0/` returns the earliest capture, which is the most useful
+    view for a prior-art timing question: an archived copy that predates one of
+    the exhibits is direct evidence of precedence. archive.today's `newest/`
+    returns the most recent snapshot, which is the useful view when the
+    original page has been edited or taken down since publication. Neither is
+    required — a `_fetch` failure downgrades the source to "unavailable" in the
+    prompt without aborting the round.
+    """
+    stripped = url.strip()
+    return [
+        f"https://web.archive.org/web/0/{stripped}",
+        f"https://archive.ph/newest/{stripped}",
+    ]
+
+
+def _fetch_snapshots(origin_url: str, accused_url: str) -> list:
+    """
+    Try to enrich the first instance with up to four archived snapshots — one
+    Wayback and one archive.today per exhibit. Returns a list of
+    (label, url, text) tuples; a failed or thin fetch is silently dropped.
+    """
+    out = []
+    plan = (
+        ("origin-wayback",     _snapshot_urls(origin_url)[0]),
+        ("origin-archiveph",   _snapshot_urls(origin_url)[1]),
+        ("accused-wayback",    _snapshot_urls(accused_url)[0]),
+        ("accused-archiveph",  _snapshot_urls(accused_url)[1]),
+    )
+    for label, snap_url in plan:
+        text = _fetch(snap_url)
+        if text is None or len(text) < MIN_EVIDENCE_CHARS:
+            continue
+        if len(text) > MAX_SNAPSHOT_CHARS:
+            text = text[:MAX_SNAPSHOT_CHARS] + "\n[snapshot truncated]"
+        out.append((label, snap_url, text))
+    return out
+
+
+def _render_snapshots(snapshots) -> str:
+    """Format the snapshot list for a prompt. Never raises; always returns text."""
+    if not snapshots:
+        return "(no archived snapshots were reachable; decide on A and B alone)"
+    parts = []
+    for label, url, text in snapshots:
+        parts.append(
+            f"SNAPSHOT [{label}] fetched from {url}:\n<<<SNAP\n{text}\nSNAP>>>"
+        )
+    return "\n\n".join(parts)
 
 
 def _unavailable(note: str) -> str:
