@@ -2649,3 +2649,130 @@ textarea:focus {
   font-family: var(--mono);
   font-size: 0.8rem;
 }
+
+/* ------------------------------------------------ Phase 9 — amicus briefs */
+
+.amicus {
+  margin-top: 1.5rem;
+  padding: 1.15rem 1.25rem;
+  background: var(--paper-warm);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+}
+
+.amicus-header h4 {
+  margin: 0 0 0.35rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.amicus-header .fineprint {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+}
+
+.amicus-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  margin: 0.75rem 0;
+}
+
+.amicus-table th,
+.amicus-table td {
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  border-bottom: 1px solid var(--rule);
+}
+
+.amicus-table th {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
+.amicus-table td.mono {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+}
+
+.amicus-table td a {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.amicus-stance {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.03em;
+}
+
+.stance-complainant { background: #dbe8ff; color: #1c3d7a; }
+.stance-respondent { background: #ffe0d9; color: #7a2510; }
+.stance-neutral { background: #eeeeee; color: #333; }
+
+.amicus-form {
+  margin-top: 0.9rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.amicus-form label {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.amicus-form input,
+.amicus-form textarea,
+.amicus-form select {
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  margin-top: 0.3rem;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  background: var(--paper);
+  color: var(--ink);
+  box-sizing: border-box;
+}
+
+.amicus-form textarea {
+  min-height: 60px;
+  resize: vertical;
+}
+
+.amicus-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+@media (max-width: 600px) {
+  .amicus-form-row { grid-template-columns: 1fr; }
+}
+
+.amicus-form button {
+  justify-self: start;
+  padding: 0.5rem 1rem;
+}
+
+.amicus-closed {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--paper);
+  border-left: 3px solid var(--rule-strong);
+}

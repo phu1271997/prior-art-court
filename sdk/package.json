@@ -1,6 +1,6 @@
 {
   "name": "@prior-art-court/sdk",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "TypeScript SDK for embedding the Prior Art Court doctrine layer into your own site. Read the docket, file complaints, listen for verdicts.",
   "type": "module",
   "main": "./dist/index.js",

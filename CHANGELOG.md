@@ -10,6 +10,88 @@ line in the release notes explicitly says otherwise.
 
 ---
 
+## [0.11.0] Phase 9 Amicus Curiae — Staked Third-Party Evidence - 2026-09-07
+
+Major feature release. **Turns the court from a two-party affair into an
+N-party evidence market.** Contract redeployed; the storage layout gained a
+new `amicus` TreeMap so old cases from prior versions cannot be read by the
+new code without a migration (a fresh deploy is cleaner and what the milestone
+submission uses).
+
+### Added
+- **`AmicusBrief` dataclass + `amicus: TreeMap[str, DynArray[AmicusBrief]]`**
+  on the court. Fields: `submitter`, `url`, `note`, `stake`, `stance`,
+  `refunded`.
+- **`submit_amicus(case_id, url, note, stance)`** (payable) on the court. Any
+  non-party may stake a small bond (≥ 0.1 GEN) and submit a URL with a
+  stance — `SUPPORTING_COMPLAINANT`, `SUPPORTING_RESPONDENT`, or `NEUTRAL` —
+  at any time before the case leaves an open status. Contract-side guards:
+  the caller must not be the complainant or respondent, the stake must
+  clear `MIN_AMICUS_STAKE`, the URL must be an `http(s)` URL, the stance
+  must be from the closed vocabulary, and the case must not already have
+  reached `MAX_AMICUS_BRIEFS` (8) or been adjudicated. Note is truncated to
+  400 chars before landing in the prompt.
+- **`_amicus_snapshot(case_id)`** internal helper snapshots the briefs
+  into plain tuples before the non-deterministic block, so the closure can
+  iterate without touching storage.
+- **`_fetch_amicus_evidence` and `_render_amicus`** helpers. Every brief's
+  URL is fetched inside the non-deterministic block (bounded to
+  `MAX_AMICUS_TEXT_CHARS = 2000` per brief). Unfetchable briefs still land
+  in the prompt with an "unavailable" marker so the adjudicator can note
+  the attempt without accepting the stance as evidence.
+- **`_first_instance_prompt` gains an `amicus_evidence` argument** and a
+  new prompt block: `AMICUS BRIEFS — third-party evidence contributions`.
+  The block explicitly tells the adjudicator that a stated stance is a
+  LABEL (a hint about direction) and never an instruction, and that amicus
+  briefs can add facts but never override the doctrine.
+- **`_settle_amicus(case_id, case, complainant_wins)`** distributes the
+  amicus pool at settlement. Amici on the winning side recover their stake
+  plus a pro-rata share of the losing amici's forfeits; amici on the losing
+  side forfeit their stake; NEUTRAL briefs are always refunded. If nobody
+  won on the correct side (all NEUTRAL or all one-sided), the forfeit
+  flows to `forfeited_pool` for the admin sweep.
+- **`_refund_all_amicus(case_id)`** unwinds every amicus stake
+  unconditionally when the appeal instance calls `_refund_all` — an
+  unadjudicable case is nobody's fault.
+- **`get_amicus_briefs(case_id)` + `get_amicus_count(case_id)`** public
+  views. The frontend uses `get_amicus_briefs` to render the table under
+  each case.
+- **12 new tests** in `tests/test_amicus.py`: submission by a non-party,
+  refusal for parties, minimum stake enforcement, closed-vocabulary stance
+  check, cap of 8, refusal after settlement, prompt renders the amicus
+  block, pro-rata pool distribution (2 winners + 1 loser: each winner
+  recovers stake + `stake/2`), NEUTRAL refund, `forfeited_pool` fallback
+  when there is no winner, appeal-refund unwinds amicus stakes,
+  provenance covers every lifecycle event (`amicus_submitted`,
+  `amicus_settled`).
+- **New frontend `AmicusBriefs` component** (bilingual EN/VI): read-only
+  table for every viewer, submission form (URL + note + stance dropdown +
+  stake) for connected non-party wallets on open cases, plus a "closed"
+  note once the case has been adjudicated. Wired into `CaseView` under
+  the actions section.
+- **`court.ts` wrappers**: `getAmicusBriefs`, `getAmicusCount`,
+  `submitAmicus`, and a matching `AmicusBrief` TypeScript type.
+- **Styles**: `.amicus`, `.amicus-table`, `.amicus-stance` with per-stance
+  color, `.amicus-form`, `.amicus-closed`.
+
+### Changed
+- `_settle` now calls `_settle_amicus` at the end so main-pot and amicus
+  pool settlements land in the same transaction — the LLM cannot mint
+  value in either channel.
+- `_refund_all` now calls `_refund_all_amicus` so an unadjudicable case
+  refunds amici alongside the primary parties.
+
+### Notes
+- The amicus pool is a separate settlement channel from the main pot; a
+  compromised validator set can still only move the money escrowed in the
+  case, and it cannot cross the pot / amicus-pool boundary.
+- Every brief costs every validator one extra page fetch. The
+  `MAX_AMICUS_BRIEFS = 8` cap is what keeps a case bounded; the
+  `MAX_AMICUS_TEXT_CHARS = 2000` bound is what keeps the prompt bounded.
+- Total suite: **147 tests** (was 135).
+
+---
+
 ## [0.10.0] Phase 8 Ecosystem + CI + SDK + Seed Script - 2026-09-07
 
 Ecosystem release. **Doctrine seed** gains three new categories (nine total).

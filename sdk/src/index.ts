@@ -126,6 +126,16 @@ export interface Badge {
   minted_at: number;
 }
 
+export interface AmicusBriefRecord {
+  index: number;
+  submitter: string;
+  url: string;
+  note: string;
+  stake: string;
+  stance: "SUPPORTING_COMPLAINANT" | "SUPPORTING_RESPONDENT" | "NEUTRAL";
+  refunded: boolean;
+}
+
 export interface FileCaseInput {
   account: unknown;
   category: string;
@@ -271,6 +281,39 @@ export class PriorArtCourt {
   /** Pull whatever the court owes this account. */
   async withdraw(account: unknown): Promise<string> {
     return this.writeContract(account, this.addresses.court, "withdraw", []);
+  }
+
+  // ----- amicus (Phase 9)
+
+  /** Every amicus brief staked on this case, in submission order. */
+  async listAmicusBriefs(caseId: number): Promise<AmicusBriefRecord[]> {
+    return this.readJson<AmicusBriefRecord[]>(
+      this.addresses.court,
+      "get_amicus_briefs",
+      [caseId],
+    );
+  }
+
+  /**
+   * Stake a URL and a stance into a case as a non-party. The stake must be
+   * at least 0.1 GEN; the stance must be one of SUPPORTING_COMPLAINANT /
+   * SUPPORTING_RESPONDENT / NEUTRAL.
+   */
+  async submitAmicus(opts: {
+    account: unknown;
+    caseId: number;
+    url: string;
+    note: string;
+    stance: "SUPPORTING_COMPLAINANT" | "SUPPORTING_RESPONDENT" | "NEUTRAL";
+    stake: bigint;
+  }): Promise<string> {
+    return this.writeContract(
+      opts.account,
+      this.addresses.court,
+      "submit_amicus",
+      [opts.caseId, opts.url, opts.note, opts.stance],
+      opts.stake,
+    );
   }
 
   // ----- helpers

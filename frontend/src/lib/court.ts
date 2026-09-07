@@ -201,3 +201,41 @@ export function setFilingStandingFloor(
     onProgress,
   });
 }
+
+/* ------------------------------------------------ Phase 9 amicus curiae */
+
+export interface AmicusBrief {
+  index: number;
+  submitter: string;
+  url: string;
+  note: string;
+  stake: string;
+  stance: "SUPPORTING_COMPLAINANT" | "SUPPORTING_RESPONDENT" | "NEUTRAL";
+  refunded: boolean;
+}
+
+export function getAmicusBriefs(caseId: number): Promise<AmicusBrief[]> {
+  return readJson<AmicusBrief[]>(ADDRESSES.court, "get_amicus_briefs", [caseId]);
+}
+
+export function getAmicusCount(caseId: number): Promise<number> {
+  return read<number>(ADDRESSES.court, "get_amicus_count", [caseId]);
+}
+
+export function submitAmicus(
+  account: string,
+  caseId: number,
+  url: string,
+  note: string,
+  stance: AmicusBrief["stance"],
+  stake: bigint,
+  onProgress?: Progress,
+): Promise<WriteResult> {
+  return write(
+    account,
+    ADDRESSES.court,
+    "submit_amicus",
+    [caseId, url, note, stance],
+    { value: stake, onProgress },
+  );
+}

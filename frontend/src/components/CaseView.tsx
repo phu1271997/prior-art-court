@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { AmicusBriefs } from "./AmicusBriefs";
 import { usePick } from "../lib/i18n";
 import type { Case } from "../lib/types";
 import {
@@ -279,6 +280,15 @@ export function CaseView({
       </section>
 
       {error ? <p className="error">{error}</p> : null}
+
+      <AmicusBriefs
+        caseId={entry.case_id}
+        status={entry.status}
+        complainant={entry.complainant}
+        respondent={entry.respondent}
+        account={account}
+        disabled={busy}
+      />
 
       <section className="provenance">
         <h3>{t.provenance}</h3>
