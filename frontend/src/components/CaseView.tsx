@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { AmicusBriefs } from "./AmicusBriefs";
 import { Settlement } from "./Settlement";
+import { VerdictCertificate } from "./VerdictCertificate";
 import { usePick } from "../lib/i18n";
 import type { Case } from "../lib/types";
 import {
@@ -336,6 +337,8 @@ export function CaseView({
       </section>
 
       {error ? <p className="error">{error}</p> : null}
+
+      {entry.status === "RESOLVED" ? <VerdictCertificate entry={entry} /> : null}
 
       <AmicusBriefs
         caseId={entry.case_id}

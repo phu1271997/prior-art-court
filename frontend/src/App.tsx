@@ -12,6 +12,7 @@ import * as court from "./lib/court";
 import { usePick } from "./lib/i18n";
 import type { Case, Policy, Standing } from "./lib/types";
 import { AdminPanel } from "./components/AdminPanel";
+import { Analytics } from "./components/Analytics";
 import { BadgesGallery } from "./components/BadgesGallery";
 import { CaseLaw } from "./components/CaseLaw";
 import { CaseView } from "./components/CaseView";
@@ -313,6 +314,8 @@ export default function App() {
       </section>
 
       <CaseLaw policies={policies} onSelect={setSelected} />
+
+      <Analytics cases={cases} />
 
       <BadgesGallery account={account} />
 

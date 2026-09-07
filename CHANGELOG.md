@@ -10,6 +10,48 @@ line in the release notes explicitly says otherwise.
 
 ---
 
+## [0.14.0] Milestone — Court Analytics & Verifiable Verdict Certificates - 2026-09-07
+
+Feature release, **frontend only — no contract change and no redeploy**. Adds a
+live analytics dashboard read straight from the chain, and turns any settled case
+into a portable, self-verifying certificate. Works against the currently deployed
+contracts as-is.
+
+### Why this matters
+Two gaps this closes. First, the court's activity was only legible one case at a
+time — there was no way to see the shape of the docket. Second, a decision that
+lives only inside a dApp is a fragile record: the frontend can disappear and the
+web pages a verdict was about can change or die. Both are addressed without
+trusting any new party.
+
+### Added
+- **`#analytics` — Court Analytics dashboard** (`Analytics.tsx`, bilingual EN/VI).
+  Every figure is computed live from the same public docket the court settles on,
+  with nothing stored off-chain: cases filed / decided / escalated, the
+  settlement rate (how many decided cases ended by agreement vs a full verdict),
+  total GEN staked and value actually settled, plus three charts — verdict
+  distribution, cases per doctrine, and the overlap histogram of decided
+  infringement cases. Charts are inline CSS bars — no external chart library, so
+  nothing is fetched at runtime.
+- **`analytics.ts`** — a pure `computeStats(cases)` aggregator over the docket,
+  independent of React.
+- **Verifiable Verdict Certificate** (`certificate.ts` + `VerdictCertificate.tsx`).
+  On any resolved case, one click downloads a JSON certificate that names its
+  source (chain, court address, case id) and carries a **SHA-256 digest** over the
+  canonical decision fields, computed in-browser with the Web Crypto API. The
+  digest is re-derivable: `verifyCertificate` re-reads `get_case` and reproduces
+  it, so anyone can confirm the record was not altered — no pinning service, no
+  extra trusted party. The canonical field order is fixed and explicit so the
+  digest never depends on JSON key ordering.
+- **Nav** gains "Case law" and "Analytics" entries (EN/VI) linking the two new
+  milestone surfaces.
+
+### Notes
+- No contract change; the 166-test suite is unchanged. The dashboard and
+  certificates work against the current studionet deployment.
+
+---
+
 ## [0.13.0] Milestone — Mediation & Settlement Track - 2026-09-07
 
 Major feature release. **Adds the pre-trial path a real court leans on hardest:
