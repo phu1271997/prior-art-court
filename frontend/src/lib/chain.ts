@@ -48,6 +48,7 @@ export const ADDRESSES = {
   court: clean(import.meta.env.VITE_COURT_ADDRESS),
   policyRegistry: clean(import.meta.env.VITE_POLICY_REGISTRY_ADDRESS),
   reputation: clean(import.meta.env.VITE_REPUTATION_ADDRESS),
+  achievements: clean(import.meta.env.VITE_ACHIEVEMENTS_ADDRESS),
 } as const;
 
 export const CONTRACTS_CONFIGURED = Boolean(ADDRESSES.court && ADDRESSES.policyRegistry);

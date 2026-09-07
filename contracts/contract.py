@@ -129,6 +129,12 @@ MAX_SNAPSHOT_CHARS = 3000
 # across GenVM builds — the value is opaque and never cryptographically load-
 # bearing (it authenticates DISCIPLINE, not identity).
 DISCIPLINE_PREFIX = "PAC-"
+
+# Phase 7 filing gate: a filer whose standing is below the floor must post at
+# least this on any new complaint. 1 GEN in wei — enough to make a low-standing
+# spammer feel the loss on a failed filing, low enough that a real disagreement
+# is still fileable.
+MIN_BOND_LOW_STANDING = 10**18
 _FNV_OFFSET_64 = 0xCBF29CE484222325
 _FNV_PRIME_64 = 0x100000001B3
 _FNV_MASK_64 = 0xFFFFFFFFFFFFFFFF
@@ -178,6 +184,14 @@ class PolicyRegistry:
         def get_revision(self, category: str) -> int: ...
 
 
+@gl.contract_interface
+class ReputationView:
+    """Read-only reputation lookup — the court queries it for filing gates."""
+
+    class View:
+        def get_standing(self, account: Address) -> str: ...
+
+
 # --------------------------------------------------------------------- storage
 
 
@@ -209,6 +223,13 @@ class Case:
 class Contract(gl.Contract):
     admin: Address
     policy_registry: Address
+    reputation: Address  # zero when the reputation contract is not yet set
+
+    # Standing floor below which the caller must double their bond to file. Set
+    # to the base standing (100) so any account that has ever lost a case has
+    # to put a little more skin in the game — but every unknown account starts
+    # ABOVE the threshold, so a new user is not pre-penalised for existing.
+    filing_standing_floor: u256
 
     case_count: u256
     cases: TreeMap[str, Case]  # keyed by str(case_id) — see R19
@@ -231,6 +252,8 @@ class Contract(gl.Contract):
     def __init__(self, policy_registry: str) -> None:
         self.admin = gl.message.sender_address
         self.policy_registry = _to_address(policy_registry)
+        self.reputation = _zero_address()
+        self.filing_standing_floor = u256(100)
         self.case_count = 0
         self.forfeited_pool = bigint(0)
 
@@ -269,6 +292,33 @@ class Contract(gl.Contract):
     def _index_party(self, account: Address, case_id: int) -> None:
         self.party_index.get_or_insert_default(_addr_str(account)).append(u256(case_id))
 
+    def _required_min_bond(self, account: Address) -> int:
+        """
+        Reputation-tiered filing gate (Phase 7).
+
+        For most filers this returns 1 (any positive bond passes). A filer
+        whose standing has dropped below the floor must post at least
+        `MIN_BOND_LOW_STANDING` — skin-in-the-game indexed to demonstrated
+        reliability. An unknown account starts at BASE_STANDING (100 in the
+        reputation contract), which equals the floor, so a first-time filer
+        is NEVER surcharged. Only a filer who has already lost or forfeited
+        enough to drop BELOW the base has to raise the bond. When the
+        reputation address is unset (a court on a fresh chain, or an admin
+        that has not yet pointed it at reputation), gating is a no-op.
+        """
+        if self.reputation == _zero_address():
+            return 1
+        try:
+            record = json.loads(
+                ReputationView(self.reputation).view().get_standing(account)
+            )
+            standing = int(record.get("standing", 100))
+        except Exception:
+            return 1
+        if standing < int(self.filing_standing_floor):
+            return MIN_BOND_LOW_STANDING
+        return 1
+
     # ------------------------------------------------------------ case lifecycle
 
     @gl.public.write.payable
@@ -287,6 +337,14 @@ class Contract(gl.Contract):
         """
         bond = int(gl.message.value)
         assert bond > 0, "court: bond must be greater than zero"
+
+        # Phase 7 filing gate: a caller whose standing has fallen below the
+        # floor must post at least MIN_BOND_LOW_STANDING. The check is a no-op
+        # for accounts at or above the base standing (100) — new users and
+        # anyone with a clean record file at whatever bond they choose.
+        assert bond >= self._required_min_bond(gl.message.sender_address), (
+            "court: caller's standing requires a higher bond"
+        )
 
         slug = category.strip().lower()
         assert self._policies().view().has_policy(slug), "court: no doctrine for this category"
@@ -808,6 +866,34 @@ class Contract(gl.Contract):
         # not reliably triggerable, and a payout that waits for it is a payout the
         # winner never receives.
         gl.get_contract_at(account).emit_transfer(value=u256(amount), on="accepted")
+
+    # ------------------------------------------------------------- gating admin
+
+    @gl.public.write
+    def set_reputation(self, reputation: Address) -> None:
+        """Point the court at the deployed Reputation contract to turn gating on."""
+        assert gl.message.sender_address == self.admin, "court: admin only"
+        self.reputation = reputation
+
+    @gl.public.write
+    def set_filing_standing_floor(self, floor: int) -> None:
+        """Adjust the floor below which callers must post the low-standing bond."""
+        assert gl.message.sender_address == self.admin, "court: admin only"
+        assert 0 <= floor <= 1000, "court: standing floor out of range"
+        self.filing_standing_floor = u256(floor)
+
+    @gl.public.view
+    def get_reputation(self) -> str:
+        return self.reputation.as_hex
+
+    @gl.public.view
+    def get_filing_standing_floor(self) -> int:
+        return int(self.filing_standing_floor)
+
+    @gl.public.view
+    def get_min_bond_for(self, account: Address) -> str:
+        """Public quote for a caller — the frontend uses this to pre-flight a filing."""
+        return str(self._required_min_bond(account))
 
     @gl.public.write
     def sweep_forfeited(self) -> None:

@@ -138,6 +138,14 @@ def main() -> None:
     registry = deploy(client, account, "PolicyRegistry", "policy_registry.py", [])
     court = deploy(client, account, "Court", "contract.py", [registry])
     reputation = deploy(client, account, "Reputation", "reputation.py", [court])
+    achievements = deploy(
+        client, account, "Achievements", "achievements.py", [court, reputation]
+    )
+
+    # Wire Phase 7 gating: point the court at the reputation contract so
+    # the standing-tiered filing gate becomes active.
+    print("\n  wiring reputation into the court")
+    call(client, account, court, "set_reputation", [reputation])
 
     if not args.skip_policies:
         print("\n  registering doctrine")
@@ -152,6 +160,7 @@ def main() -> None:
             "PolicyRegistry": registry,
             "PriorArtCourt": court,
             "Reputation": reputation,
+            "Achievements": achievements,
         },
         "categories": sorted(POLICIES),
     }
@@ -166,6 +175,7 @@ def main() -> None:
                 f"VITE_COURT_ADDRESS={court}",
                 f"VITE_POLICY_REGISTRY_ADDRESS={registry}",
                 f"VITE_REPUTATION_ADDRESS={reputation}",
+                f"VITE_ACHIEVEMENTS_ADDRESS={achievements}",
                 "",
             ]
         )
@@ -175,7 +185,8 @@ def main() -> None:
     print("  wrote frontend/.env.local\n")
     print(f"  PolicyRegistry   {registry}")
     print(f"  PriorArtCourt    {court}")
-    print(f"  Reputation       {reputation}\n")
+    print(f"  Reputation       {reputation}")
+    print(f"  Achievements     {achievements}\n")
 
 
 if __name__ == "__main__":

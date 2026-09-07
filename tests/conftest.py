@@ -295,6 +295,27 @@ def reputation(vm, court, accounts):
     return deploy(vm, "reputation.py", create_address(COURT_SEED))
 
 
+REPUTATION_SEED = "reputation-contract"
+
+
+@pytest.fixture
+def achievements(vm, court, reputation, accounts):
+    """
+    Deploy the Phase 7 Achievements contract wired to both the court and the
+    reputation instance. The router hook registers all three by seed address so
+    cross-contract calls (`_court().view()`, `_reputation().view()`) reach the
+    right instance.
+    """
+    register_contract(vm, create_address(REPUTATION_SEED), reputation)
+    vm.sender = accounts["admin"]
+    return deploy(
+        vm,
+        "achievements.py",
+        create_address(COURT_SEED),
+        create_address(REPUTATION_SEED),
+    )
+
+
 # -------------------------------------------------------------------- helpers
 
 DOCTRINE = (

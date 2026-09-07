@@ -9,6 +9,8 @@ import type { WriteProgress } from "./lib/chain";
 import * as court from "./lib/court";
 import { usePick } from "./lib/i18n";
 import type { Case, Policy, Standing } from "./lib/types";
+import { AdminPanel } from "./components/AdminPanel";
+import { BadgesGallery } from "./components/BadgesGallery";
 import { CaseView } from "./components/CaseView";
 import { ConsensusOverlay } from "./components/ConsensusOverlay";
 import { Docket } from "./components/Docket";
@@ -76,6 +78,7 @@ export default function App() {
   const [busy, setBusy] = useState<Busy | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [admin, setAdmin] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!CONTRACTS_CONFIGURED) return;
@@ -96,6 +99,21 @@ export default function App() {
 
   useEffect(() => {
     currentAccount().then(setAccount).catch(() => undefined);
+    // Pull the PolicyRegistry admin address so we can render the Admin panel
+    // only for that caller. Contracts refuse a non-admin call regardless, but
+    // hiding the panel avoids advertising an action the viewer cannot take.
+    if (CONTRACTS_CONFIGURED) {
+      import("./lib/court").then(async () => {
+        try {
+          const { read } = await import("./lib/chain");
+          const { ADDRESSES } = await import("./lib/chain");
+          const adminAddr = await read<string>(ADDRESSES.policyRegistry, "get_admin");
+          setAdmin(adminAddr);
+        } catch {
+          setAdmin(null);
+        }
+      });
+    }
   }, []);
 
   useEffect(() => {
@@ -277,6 +295,18 @@ export default function App() {
           </div>
         </div>
       </section>
+
+      <BadgesGallery account={account} />
+
+      <AdminPanel
+        account={account}
+        isAdmin={Boolean(
+          account &&
+            admin &&
+            account.toLowerCase() === admin.toLowerCase(),
+        )}
+        onDone={(label) => setNotice(`Admin action accepted: ${label}.`)}
+      />
 
       <Footer />
       <ScrollToTop />

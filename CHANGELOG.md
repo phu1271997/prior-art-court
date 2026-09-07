@@ -10,6 +10,82 @@ line in the release notes explicitly says otherwise.
 
 ---
 
+## [0.9.0] Phase 7 Achievements + Reputation Gate + Admin - 2026-09-07
+
+Major release. **A new fourth contract** (`Achievements`) joins the deploy
+alongside the existing three; the court gains a reputation-tiered filing gate
+and admin knobs; the frontend adds a Badges gallery and an on-page admin
+panel. All four contracts are redeployed and their addresses in
+`contracts/deployments.json` are new.
+
+### Added
+- **`Achievements` contract** (`contracts/achievements.py`, 274 lines). A
+  standalone read-only-of-others contract that folds settled cases into an
+  on-chain, per-address list of permanent, non-transferable badges. Eight
+  badge kinds ship in the closed catalog: `FIRST_FILING`, `FIRST_CONTEST`,
+  `FIRST_WIN`, `FIVE_WINS`, `TEN_WINS`, `JUST_DEFENDER` (a respondent who
+  defeated an unfounded complaint), `APPELLATE_WINNER`, `PRECEDENT_INVERTER`
+  (won because the appeal established their work came first). Permissionless
+  `mint_from_case(case_id)` and `mint_recent(limit)` — the contract's own
+  dedup makes duplicate calls no-ops, so any account can trigger surfacing
+  without gaming it. Storage: `badges: TreeMap[str, DynArray[Badge]]`,
+  `minted_from: TreeMap[str, bool]`, `holders: TreeMap[str, bool]` (unique
+  (address, kind) index), `roster: DynArray[str]` (first-mint-order public
+  list). Non-transferability is enforced by omission — no `transfer` method.
+- **Reputation-tiered filing gate** on `PriorArtCourt`. New storage:
+  `reputation: Address`, `filing_standing_floor: u256` (default 100 =
+  BASE_STANDING, so unknown accounts are never surcharged). New helper
+  `_required_min_bond(account)` calls the reputation contract (when wired)
+  and returns `MIN_BOND_LOW_STANDING` (1 GEN) for filers below the floor,
+  else 1 (any positive bond passes). New view `get_min_bond_for(account)`
+  for frontend pre-flight quotes.
+- **Admin knobs on court**: `set_reputation(address)` (turns the gate on
+  when pointed at a Reputation contract), `set_filing_standing_floor(int)`,
+  `get_reputation()`, `get_filing_standing_floor()`.
+- **Admin knobs on Achievements**: `set_court`, `set_reputation`,
+  `get_court`, `get_reputation`, `get_badge_catalog` (publishes the closed
+  vocabulary so a frontend need not hard-code it).
+- **13 new tests** in `tests/test_achievements.py` covering catalog
+  vocabulary, first-filing + first-win + first-contest badges from a single
+  case, second-win idempotency, `JUST_DEFENDER` on a defensive win, mint
+  idempotency, unresolved-case rejection, roster first-mint-order,
+  admin-only guards, and every branch of the reputation gate (off when
+  reputation is zero, no-op for new accounts, low-standing surcharge, admin
+  wiring guarded, floor range guarded). Total suite: **127 tests**.
+- **Frontend `BadgesGallery`** component: shows the viewer's badges and a
+  20-address recent-holders roster, with a "Sync recent cases" button that
+  calls `mint_recent(25)` — permissionless, so any wallet can trigger it.
+- **Frontend `AdminPanel`** component: rendered only when the connected
+  account matches the deployer address on `PolicyRegistry`. Three cards:
+  register/amend a doctrine (with the 120-char guard mirrored client-side),
+  sweep the forfeited pool, adjust the filing standing floor. All actions
+  are still gated by the on-chain admin check — the UI is UX, not a lock.
+- **New frontend court lib functions**: `getBadges`, `getBadgeHolders`,
+  `getBadgeCatalog`, `mintBadgesFromCase`, `mintBadgesRecent`,
+  `getMinBondFor`, `getFilingStandingFloor`, `registerPolicy`,
+  `sweepForfeited`, `setReputationOnCourt`, `setFilingStandingFloor`.
+- **Deploy script** now deploys the four contracts in order and calls
+  `court.set_reputation(reputation)` so gating is active by default; env
+  writes `VITE_ACHIEVEMENTS_ADDRESS` too.
+- **Styles**: Phase 7 CSS for `.badges-gallery`, per-kind badge glyphs
+  (colour per badge kind), `.admin-panel` and its dashed-outline "this is
+  live" affordance.
+
+### Changed
+- `file_case` now performs a single extra `assert` against the caller's
+  standing quote; every existing test passes untouched because the guard is
+  off until an admin points the court at reputation.
+
+### Notes
+- The `Achievements` contract reads BOTH court and reputation. It is safe
+  to deploy against a court that never had reputation wired; badges depend
+  only on the case fields (`get_case`), not on reputation, and the
+  `FIVE_WINS` / `TEN_WINS` count is best-effort (returns 0 on read
+  failure). Wiring reputation just improves the accuracy of those two
+  count-based badges.
+
+---
+
 ## [0.8.0] Phase 6 Patent Domain + Multi-Source - 2026-09-07
 
 Contract + doctrine release. **All three contracts are redeployed** and a new
