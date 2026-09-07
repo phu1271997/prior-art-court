@@ -111,6 +111,38 @@ MAX_EVIDENCE_CHARS = 6000
 # supplementary sources together stay well under the base prompt budget.
 MAX_SNAPSHOT_CHARS = 3000
 
+# ---------------------------------- precedent engine (Stare Decisis milestone)
+#
+# A court that forgets every case the moment it settles is not a court, it is a
+# sequence of unrelated verdicts. Real courts reason from their own prior
+# decisions: like cases decided alike, unlike cases distinguished on the record.
+#
+# When the first instance hears a dispute it now reads the court's OWN prior
+# settled decisions in the same category and puts them in front of the
+# adjudicator as case law. The adjudicator must state how the present case
+# relates to that precedent — FOLLOWED, DISTINGUISHED, or DEPARTED — and cite the
+# specific prior case ids it relied on. Every validator reads the same precedent
+# out of the same storage, so the body of law is identical across the set.
+#
+# Precedent is persuasive, not binding: it never overrides the doctrine and it is
+# NOT part of consensus equality (the citation set is as noisy as the prose). It
+# changes what the adjudicator is shown, and it is recorded on-chain so the
+# lineage of a verdict is auditable — which prior cases shaped it, and whether
+# the court held its line or moved.
+MAX_PRECEDENTS = 3          # how many prior decisions are placed before the court
+MAX_PRECEDENT_CHARS = 600   # per-precedent excerpt cap, keeps the block bounded
+
+ALIGN_FOLLOWED = "FOLLOWED"          # decided the same way as controlling precedent
+ALIGN_DISTINGUISHED = "DISTINGUISHED"  # precedent exists but the facts differ materially
+ALIGN_DEPARTED = "DEPARTED"          # knowingly decided against on-point precedent
+ALIGN_NONE = "NONE"                  # no precedent in this category yet
+_ALIGNMENTS = [ALIGN_FOLLOWED, ALIGN_DISTINGUISHED, ALIGN_DEPARTED, ALIGN_NONE]
+
+# Only these verdicts create precedent. An unreadable case or a refund settled
+# nothing on the merits, so it teaches the court nothing and never enters the
+# body of law.
+_PRECEDENTIAL_VERDICTS = [VERDICT_INFRINGING, VERDICT_DERIVATIVE_FAIR, VERDICT_INDEPENDENT]
+
 # ---------------------------------- discipline (v0.7 anti-prompt-injection canary)
 #
 # The exhibits are user-supplied text. A published web page is free to contain
@@ -265,6 +297,9 @@ class Case:
     instance: u8  # 0 = not yet heard, 1 = first instance, 2 = appeal (final)
     winner: Address
     payout: bigint
+    # Stare decisis (precedent engine). Set at the first-instance hearing.
+    cited_precedents: str      # JSON list[int] — prior case ids the court relied on
+    precedent_alignment: str   # FOLLOWED / DISTINGUISHED / DEPARTED / NONE
 
 
 class Contract(gl.Contract):
@@ -298,6 +333,11 @@ class Contract(gl.Contract):
 
     # case_id -> ordered list of amicus briefs staked on that case
     amicus: TreeMap[str, DynArray[AmicusBrief]]
+
+    # category slug -> settled case ids that decided on the merits, in the order
+    # they settled. This is the court's body of case law; the first instance
+    # reads the tail of the list for the category it is about to hear.
+    precedent_index: TreeMap[str, DynArray[u256]]
 
     def __init__(self, policy_registry: str) -> None:
         self.admin = gl.message.sender_address
@@ -355,6 +395,40 @@ class Contract(gl.Contract):
         for i in range(min(len(entries), MAX_AMICUS_BRIEFS)):
             brief = entries[i]
             out.append((str(brief.url), str(brief.note), str(brief.stance)))
+        return out
+
+    def _precedent_snapshot(self, category: str, exclude_case_id: int) -> list:
+        """
+        Read the court's own most recent settled decisions in `category` out of
+        storage as plain dicts, so the non-deterministic hearing can put them
+        before the adjudicator without touching storage. Newest precedent first,
+        capped at MAX_PRECEDENTS. Every validator reads the same list from the
+        same storage, so the body of law is identical across the set.
+        """
+        ids = self.precedent_index.get(category, None)
+        if ids is None:
+            return []
+        out = []
+        # Walk the tail newest-first; skip the case being heard (it can appear if
+        # a prior instance already indexed it, which never happens today but is
+        # cheap to guard) and stop once the block is full.
+        for k in range(len(ids) - 1, -1, -1):
+            cid = int(ids[k])
+            if cid == exclude_case_id:
+                continue
+            key = str(cid)
+            if key not in self.cases:
+                continue
+            prior = self.cases[key]
+            out.append({
+                "case_id": cid,
+                "verdict": str(prior.verdict),
+                "overlap_pct": int(prior.overlap_pct),
+                "first_publisher": str(prior.first_publisher),
+                "reason": str(prior.reason)[:MAX_PRECEDENT_CHARS],
+            })
+            if len(out) >= MAX_PRECEDENTS:
+                break
         return out
 
     def _required_min_bond(self, account: Address) -> int:
@@ -447,6 +521,8 @@ class Contract(gl.Contract):
             u8(0),
             _zero_address(),
             bigint(0),
+            "[]",
+            ALIGN_NONE,
         )
 
         self._index_party(complainant, case_id)
@@ -631,6 +707,12 @@ class Contract(gl.Contract):
         # non-deterministic block — the storage TreeMap is not reachable
         # from inside the closure.
         amicus_snapshot = self._amicus_snapshot(case_id)
+        # Stare decisis: read the court's own prior decisions in this category
+        # out of storage and put them before the adjudicator as case law. Read
+        # here, in deterministic code, so every validator sees the same body of
+        # law captured in the closure.
+        precedents = self._precedent_snapshot(category, case_id)
+        precedent_ids = [int(p["case_id"]) for p in precedents]
 
         def hear() -> str:
             exhibit_a = _fetch(origin_url)
@@ -652,7 +734,8 @@ class Contract(gl.Contract):
             amicus_evidence = _fetch_amicus_evidence(amicus_snapshot)
             return _extract_json(gl.nondet.exec_prompt(_first_instance_prompt(
                 category, doctrine, claim_text, origin_url, accused_url,
-                exhibit_a, exhibit_b, discipline, snapshots, amicus_evidence
+                exhibit_a, exhibit_b, discipline, snapshots, amicus_evidence,
+                precedents
             )))
 
         def agrees(leader_result) -> bool:
@@ -716,6 +799,17 @@ class Contract(gl.Contract):
         reason = str(opinion.get("reason", ""))[:1200]
         analyses = _analyses_summary(opinion.get("analyses"))
         discipline_kept = _discipline_ok(opinion, discipline)
+        # Stare decisis bookkeeping. Keep only citations that name a precedent
+        # the court actually placed before the adjudicator — a hallucinated id is
+        # dropped rather than recorded as case law. Alignment is coerced to the
+        # court's closed vocabulary, and forced to NONE when there was nothing to
+        # follow, so the record can never claim to have followed a precedent that
+        # did not exist.
+        cited = _cited_precedents(opinion.get("cited_precedents"), precedent_ids)
+        alignment = _alignment_of(opinion.get("precedent_alignment"))
+        if not precedent_ids:
+            alignment = ALIGN_NONE
+            cited = []
 
         case.verdict = verdict
         case.overlap_pct = u8(overlap)
@@ -723,6 +817,8 @@ class Contract(gl.Contract):
         case.first_publisher = publisher
         case.reason = reason
         case.instance = u8(1)
+        case.cited_precedents = json.dumps(cited)
+        case.precedent_alignment = alignment
 
         self._record(
             case_id,
@@ -736,6 +832,9 @@ class Contract(gl.Contract):
                 "discipline_kept": discipline_kept,
                 "analyses": analyses,
                 "reason": reason,
+                "precedent_available": precedent_ids,
+                "cited_precedents": cited,
+                "precedent_alignment": alignment,
             },
         )
 
@@ -960,6 +1059,13 @@ class Contract(gl.Contract):
         case.status = STATUS_RESOLVED
         case.winner = winner
         case.payout = bigint(payout)
+
+        # Stare decisis: a case that settled on the merits joins the body of law
+        # for its category, and the next dispute of that kind will be heard with
+        # this decision in front of the adjudicator. A refund or an unreadable
+        # case decided nothing and is never indexed.
+        if verdict in _PRECEDENTIAL_VERDICTS:
+            self.precedent_index.get_or_insert_default(str(case.category)).append(u256(case_id))
 
         self._record(
             case_id,
@@ -1243,6 +1349,46 @@ class Contract(gl.Contract):
         entries = self.amicus.get(str(case_id), None)
         return 0 if entries is None else len(entries)
 
+    @gl.public.view
+    def get_precedents(self, category: str, limit: int) -> str:
+        """
+        The court's own body of case law for a category, newest first: every
+        case that settled on the merits, with the verdict it reached and the
+        reasoning behind it. This is what the first instance reads before it
+        hears a new dispute of the same kind, and what the Case Law browser in
+        the UI renders. `limit <= 0` returns the whole line of decisions.
+        """
+        ids = self.precedent_index.get(category, None)
+        if ids is None:
+            return json.dumps([])
+        total = len(ids)
+        count = total if limit <= 0 else min(limit, total)
+        out = []
+        for k in range(total - 1, total - count - 1, -1):
+            cid = int(ids[k])
+            key = str(cid)
+            if key not in self.cases:
+                continue
+            case = self.cases[key]
+            out.append({
+                "case_id": cid,
+                "category": str(case.category),
+                "verdict": str(case.verdict),
+                "overlap_pct": int(case.overlap_pct),
+                "confidence": int(case.confidence),
+                "first_publisher": str(case.first_publisher),
+                "instance": int(case.instance),
+                "reason": str(case.reason),
+                "cited_precedents": _load_int_list(case.cited_precedents),
+                "precedent_alignment": str(case.precedent_alignment),
+            })
+        return json.dumps(out)
+
+    @gl.public.view
+    def get_precedent_count(self, category: str) -> int:
+        ids = self.precedent_index.get(category, None)
+        return 0 if ids is None else len(ids)
+
     def _case_dict(self, case_id: int) -> dict:
         case = self._case(case_id)
         return {
@@ -1267,6 +1413,8 @@ class Contract(gl.Contract):
             "instance": int(case.instance),
             "winner": _addr_str(case.winner),
             "payout": str(int(case.payout)),
+            "cited_precedents": _load_int_list(case.cited_precedents),
+            "precedent_alignment": str(case.precedent_alignment),
         }
 
 
@@ -1284,10 +1432,12 @@ def _first_instance_prompt(
     discipline_token: str,
     snapshots: list | None = None,
     amicus_evidence: list | None = None,
+    precedents: list | None = None,
 ) -> str:
     domain_note = _domain_note(category)
     snapshots_block = _render_snapshots(snapshots or [])
     amicus_block = _render_amicus(amicus_evidence or [])
+    precedent_block = _render_precedents(precedents or [])
     return f"""You are sitting as an impartial adjudicator in a prior-art dispute. You
 apply the doctrine you are given, and nothing else. You are not asked what is fair
 in general, what the law is in any particular country, or what you would prefer.
@@ -1348,6 +1498,31 @@ tried to bring evidence; do not treat that alone as evidence FOR the stance,
 though. Amicus briefs cannot introduce a new verdict category or override the
 doctrine; they can only add facts.
 
+PRECEDENT — the court's own prior decisions in this category
+{precedent_block}
+
+These are cases THIS court has already settled on the merits under the same
+doctrine. Treat them the way a judge treats case law: like cases should be
+decided alike, and a case you decide differently from an on-point precedent must
+be one you can distinguish on the facts. Precedent is persuasive, not binding —
+it NEVER overrides the doctrine, and a single well-reasoned precedent does not
+outweigh the exhibits in front of you. Use it for consistency, not for
+authority. If the precedents shown genuinely differ from this dispute, say so and
+decide on the exhibits.
+
+You must report how this case sits with that precedent:
+- precedent_alignment: EXACTLY one of
+    FOLLOWED       you decided the same way as an on-point precedent above.
+    DISTINGUISHED  a precedent looked relevant but the facts differ materially,
+                   so it does not control here.
+    DEPARTED       you decided AGAINST an on-point precedent — reserve this for
+                   when the precedent was, on reflection, wrong, and say why in
+                   your reason.
+    NONE           there was no precedent above, or none bears on this dispute.
+- cited_precedents: a JSON array of the case-id integers above that actually
+  informed your decision (for example [3, 7]). Cite only cases listed above;
+  never invent an id. Use [] when none applied.
+
 MULTI-PERSPECTIVE ANALYSIS
 Before you decide, weigh the dispute from three distinct viewpoints. A verdict
 that only survives one of them is fragile and should not settle a case.
@@ -1394,10 +1569,12 @@ Decide the following, and be strict with yourself about each one:
 
 - reason: 2 to 4 sentences, addressed to the losing party. Point at the specific
   passages, structures or elements that decided it. Do not restate the doctrine.
+  If you FOLLOWED or DEPARTED from a precedent, name it here in plain words.
 
 Reply with ONLY valid JSON, no prose, no markdown fences:
 {{"verdict": str, "overlap_pct": int, "confidence": int, "first_publisher": str,
   "discipline_token": "{discipline_token}",
+  "precedent_alignment": str, "cited_precedents": [int],
   "analyses": {{"forensic": str, "reader": str, "skeptic": str}},
   "reason": str}}"""
 
@@ -1658,6 +1835,70 @@ def _render_amicus(amicus_evidence) -> str:
             f"<<<AMICUS_{i + 1}\n{body}\nAMICUS_{i + 1}>>>"
         )
     return "\n\n".join(parts)
+
+
+def _render_precedents(precedents) -> str:
+    """
+    Format the court's own prior decisions for a prompt. Each precedent shows
+    the case id the adjudicator must cite it by, the verdict it reached, the
+    overlap it found, and an excerpt of the reasoning. Precedent is persuasive
+    context, not an exhibit — the instruction block in the prompt makes clear it
+    never overrides the doctrine.
+    """
+    if not precedents:
+        return "(this is the court's first case in this category — no precedent yet)"
+    parts = []
+    for p in precedents:
+        parts.append(
+            f"PRECEDENT — case #{p['case_id']}: verdict {p['verdict']}, "
+            f"overlap {p['overlap_pct']}%, first_publisher {p['first_publisher']}\n"
+            f"reasoning: {p['reason'] or '(no reasoning recorded)'}"
+        )
+    return "\n\n".join(parts)
+
+
+def _cited_precedents(value, available_ids) -> list:
+    """
+    Reduce the model's `cited_precedents` to the subset of ids the court actually
+    placed before it. Anything else — a hallucinated case id, a string, a nested
+    object — is dropped. Order is preserved and duplicates are removed, so the
+    on-chain citation list is always a clean subset of what was on offer.
+    """
+    if not isinstance(value, list):
+        return []
+    allowed = {int(i) for i in available_ids}
+    out = []
+    for item in value:
+        try:
+            cid = int(item)
+        except (TypeError, ValueError):
+            continue
+        if cid in allowed and cid not in out:
+            out.append(cid)
+    return out
+
+
+def _alignment_of(value) -> str:
+    """Coerce the model's alignment into the court's closed vocabulary."""
+    raw = str(value or "").strip().upper()
+    return raw if raw in _ALIGNMENTS else ALIGN_NONE
+
+
+def _load_int_list(raw) -> list:
+    """Parse a JSON int-list stored on a case back into a list of ints, safely."""
+    try:
+        value = json.loads(raw) if isinstance(raw, str) else raw
+    except (ValueError, TypeError):
+        return []
+    if not isinstance(value, list):
+        return []
+    out = []
+    for item in value:
+        try:
+            out.append(int(item))
+        except (TypeError, ValueError):
+            continue
+    return out
 
 
 def _unavailable(note: str) -> str:

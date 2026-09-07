@@ -37,7 +37,38 @@ export interface Case {
   instance: number;
   winner: string;
   payout: string;
+  /** Stare decisis (precedent engine). Prior case ids the court relied on. */
+  cited_precedents: number[];
+  precedent_alignment: PrecedentAlignment;
 }
+
+export type PrecedentAlignment =
+  | "FOLLOWED"
+  | "DISTINGUISHED"
+  | "DEPARTED"
+  | "NONE"
+  | "";
+
+/** Mirrors `Contract.get_precedents` — one settled decision in the body of law. */
+export interface Precedent {
+  case_id: number;
+  category: string;
+  verdict: Verdict;
+  overlap_pct: number;
+  confidence: number;
+  first_publisher: FirstPublisher;
+  instance: number;
+  reason: string;
+  cited_precedents: number[];
+  precedent_alignment: PrecedentAlignment;
+}
+
+export const ALIGNMENT_LABEL: Record<string, string> = {
+  FOLLOWED: "Followed precedent",
+  DISTINGUISHED: "Distinguished precedent",
+  DEPARTED: "Departed from precedent",
+  NONE: "No precedent on point",
+};
 
 export interface Policy {
   category: string;

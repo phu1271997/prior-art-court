@@ -10,6 +10,74 @@ line in the release notes explicitly says otherwise.
 
 ---
 
+## [0.12.0] Milestone — Precedent Engine (Stare Decisis) - 2026-09-07
+
+Major feature release. **Turns a sequence of unrelated verdicts into a body of
+case law.** The court now reasons from its own prior decisions: when the first
+instance hears a dispute, it reads the court's earlier settled cases in the same
+category and puts them before the adjudicator as precedent. Contract redeployed
+(the `Case` layout gained two fields and storage gained a `precedent_index`, so
+this is a fresh deploy — old cases are not migrated).
+
+### Why this matters
+A real court decides like cases alike and distinguishes unlike ones on the
+record. Before this release every case was heard in isolation, so two identical
+disputes filed a month apart could settle inconsistently with nothing to show it.
+Now the second one is heard *with the first one in front of the bench*, the
+adjudicator states on-chain whether it **FOLLOWED**, **DISTINGUISHED**, or
+**DEPARTED** from that precedent, and the citation is recorded so the lineage of
+any verdict is auditable. This is only possible on GenLayer: precedent is prose,
+the "is this case like that one" judgement is subjective, and it is made by the
+validator set reading the record inside the contract — not by an off-chain index.
+
+### Added
+- **Two new `Case` fields** — `cited_precedents` (JSON list of prior case ids the
+  adjudicator relied on) and `precedent_alignment` (`FOLLOWED` / `DISTINGUISHED`
+  / `DEPARTED` / `NONE`).
+- **`precedent_index: TreeMap[str, DynArray[u256]]`** — the body of law, one
+  ordered list of settled case ids per category. Appended in `_settle` only when
+  a case decides on the merits; a refund or an unreadable case is never indexed.
+- **`_precedent_snapshot(category, exclude_case_id)`** reads the tail of the
+  index (up to `MAX_PRECEDENTS = 3`) into plain dicts before the non-deterministic
+  block, so every validator sees the identical body of law captured in the closure.
+- **`_first_instance_prompt` gains a `PRECEDENT` block** and two output fields.
+  The prompt is explicit that precedent is *persuasive, not binding* — it never
+  overrides the doctrine and a single precedent never outweighs the exhibits.
+- **On-chain sanitisation** — `_cited_precedents` drops any id the court did not
+  actually place before the adjudicator (a hallucinated citation never becomes
+  case law); `_alignment_of` coerces the alignment to the closed vocabulary;
+  alignment is forced to `NONE` when there was no precedent to follow.
+- **`get_precedents(category, limit)` and `get_precedent_count(category)`** public
+  views. The frontend Case Law browser renders the former.
+- **New frontend `CaseLaw` component** (bilingual EN/VI) at the `#case-law`
+  anchor: a per-category tabbed browser of the evolving body of law, newest
+  decision first, each card showing the verdict, the alignment badge, the
+  reasoning, the overlap, and which prior cases it cited.
+- **Precedent block on the verdict card** in `CaseView`: the alignment badge plus
+  clickable links to every cited prior case.
+- **8 new tests** in `tests/test_precedent.py`: a first case is heard without
+  precedent and then becomes precedent; a merits verdict enters the body of law
+  while an escalated case never does; a later case is heard *with* the precedent
+  block actually in the prompt (proved by keying the LLM mock to the block
+  itself); a hallucinated citation is dropped and a bad alignment is coerced;
+  precedent is scoped to its own category; the case-law view lists newest first.
+- **SDK** gains `getPrecedents` / `getPrecedentCount` and the two new
+  `CaseRecord` fields.
+
+### Consensus is unchanged and still safe
+Precedent changes what the adjudicator is *shown*, never how consensus is
+reached. The citation set and alignment are as noisy as the prose, so — like
+`reason` and `confidence` — they are recorded but never compared in `agrees()`.
+Two validators still reach consensus on the VERDICT (and overlap neighbourhood),
+and a compromised set still cannot move more than the bonds the parties escrowed.
+
+### Notes
+- Total suite: **154 tests** (was 147).
+- Redeploy required — see the deploy step in the README. The contract addresses
+  in the README/`.env` change on redeploy.
+
+---
+
 ## [0.11.0] Phase 9 Amicus Curiae — Staked Third-Party Evidence - 2026-09-07
 
 Major feature release. **Turns the court from a two-party affair into an

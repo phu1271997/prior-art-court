@@ -101,6 +101,9 @@ export interface CaseRecord {
   instance: 0 | 1 | 2;
   winner: string;
   payout: string;
+  /** Stare decisis: prior case ids the court relied on, and how it aligned. */
+  cited_precedents?: number[];
+  precedent_alignment?: "FOLLOWED" | "DISTINGUISHED" | "DEPARTED" | "NONE";
 }
 
 export interface StandingRecord {
@@ -180,6 +183,23 @@ export class PriorArtCourt {
     return this.readJson<Record<string, unknown>[]>(this.addresses.court, "get_history", [
       caseId,
     ]);
+  }
+
+  /**
+   * The court's own body of case law for a category, newest decision first.
+   * These are the prior decisions the first instance reads before hearing a new
+   * dispute of the same kind (stare decisis / precedent engine).
+   */
+  async getPrecedents(category: string, limit = 0): Promise<Record<string, unknown>[]> {
+    return this.readJson<Record<string, unknown>[]>(this.addresses.court, "get_precedents", [
+      category,
+      limit,
+    ]);
+  }
+
+  /** How many settled decisions form the body of law for a category. */
+  async getPrecedentCount(category: string): Promise<number> {
+    return this.readContract<number>(this.addresses.court, "get_precedent_count", [category]);
   }
 
   /** Every doctrine category currently registered, newest revisions. */

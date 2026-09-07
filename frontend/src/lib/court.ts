@@ -2,10 +2,19 @@
 
 import { ADDRESSES, asAddress, read, readJson, write } from "./chain";
 import type { WriteProgress, WriteResult } from "./chain";
-import type { Case, Policy, Standing } from "./types";
+import type { Case, Policy, Precedent, Standing } from "./types";
 
 export function listPolicies(): Promise<Policy[]> {
   return readJson<Policy[]>(ADDRESSES.policyRegistry, "get_categories");
+}
+
+/** The court's own body of case law for a category, newest decision first. */
+export function getPrecedents(category: string, limit = 0): Promise<Precedent[]> {
+  return readJson<Precedent[]>(ADDRESSES.court, "get_precedents", [category, limit]);
+}
+
+export function getPrecedentCount(category: string): Promise<number> {
+  return read<number>(ADDRESSES.court, "get_precedent_count", [category]);
 }
 
 export function listCases(limit = 0): Promise<Case[]> {

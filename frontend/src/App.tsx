@@ -13,6 +13,7 @@ import { usePick } from "./lib/i18n";
 import type { Case, Policy, Standing } from "./lib/types";
 import { AdminPanel } from "./components/AdminPanel";
 import { BadgesGallery } from "./components/BadgesGallery";
+import { CaseLaw } from "./components/CaseLaw";
 import { CaseView } from "./components/CaseView";
 import { ConsensusOverlay } from "./components/ConsensusOverlay";
 import { Docket } from "./components/Docket";
@@ -290,6 +291,8 @@ export default function App() {
           </div>
         </div>
       </section>
+
+      <CaseLaw policies={policies} onSelect={setSelected} />
 
       <BadgesGallery account={account} />
 

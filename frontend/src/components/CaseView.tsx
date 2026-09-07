@@ -59,6 +59,12 @@ const CONTENT = {
     skeptic: "Skeptic",
     disciplineOk: "Prompt-injection canary held: the adjudicator echoed the per-case token from outside the exhibits.",
     disciplineLost: "Prompt-injection canary was lost — the case escalated rather than settling on this answer.",
+    precedentTitle: "Precedent",
+    citedPrefix: "Relied on the court's own prior decisions:",
+    noPrecedentOnPoint: "The court found no prior decision on point and decided on the exhibits alone.",
+    alignFOLLOWED: "Followed precedent",
+    alignDISTINGUISHED: "Distinguished precedent",
+    alignDEPARTED: "Departed from precedent",
   },
   vi: {
     exhibitA: "Chung cu A — ban goc",
@@ -95,6 +101,12 @@ const CONTENT = {
     skeptic: "Hoai nghi",
     disciplineOk: "Canary chong prompt injection giu vung: hoi dong tra dung token cua vu an, dat ngoai vung chung cu.",
     disciplineLost: "Canary chong prompt injection bi mat — vu an chuyen phuc tham thay vi chot theo cau tra loi nay.",
+    precedentTitle: "An le",
+    citedPrefix: "Da dua vao cac phan quyet truoc cua chinh toa:",
+    noPrecedentOnPoint: "Toa khong tim thay an le lien quan va xet xu chi dua tren chung cu.",
+    alignFOLLOWED: "Tuan theo an le",
+    alignDISTINGUISHED: "Phan biet an le",
+    alignDEPARTED: "Di nguoc an le",
   },
 };
 
@@ -374,6 +386,33 @@ function Verdict({
               <dd>{lastInstance.analyses.skeptic || "—"}</dd>
             </div>
           </dl>
+        </section>
+      ) : null}
+
+      {entry.instance >= 1 && entry.precedent_alignment ? (
+        <section className="precedent-cite">
+          <h4>{t.precedentTitle}</h4>
+          {entry.precedent_alignment !== "NONE" ? (
+            <p>
+              <span className={`align-badge align-${entry.precedent_alignment.toLowerCase()}`}>
+                {t[`align${entry.precedent_alignment}` as keyof typeof t] ??
+                  entry.precedent_alignment}
+              </span>
+            </p>
+          ) : null}
+          {entry.cited_precedents && entry.cited_precedents.length > 0 ? (
+            <p className="cited">
+              {t.citedPrefix}{" "}
+              {entry.cited_precedents.map((cid, i) => (
+                <span key={cid}>
+                  {i > 0 ? ", " : ""}
+                  <a href={`#case/${cid}`}>Case #{cid}</a>
+                </span>
+              ))}
+            </p>
+          ) : (
+            <p className="cited muted">{t.noPrecedentOnPoint}</p>
+          )}
         </section>
       ) : null}
 
