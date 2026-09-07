@@ -20,13 +20,33 @@ decentralized validator set rather than issued by a platform.
 - **Source:** <https://github.com/phu1271997/prior-art-court>
 - **Deep dives:** [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · [`docs/SECURITY.md`](docs/SECURITY.md) · [`docs/ECONOMICS.md`](docs/ECONOMICS.md) · [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) · [ADRs](docs/adr/) · [`CHANGELOG.md`](CHANGELOG.md)
 - **Explorer submission draft:** [`deliverables/SUBMISSION.md`](deliverables/SUBMISSION.md)
-- **Contracts** (studionet):
+
+### New in the latest milestones
+
+- **Precedent Engine (stare decisis)** — the court reads its own prior settled
+  decisions in a category and reasons from them; every verdict records whether it
+  *followed*, *distinguished* or *departed* from precedent, and which cases it
+  cited. Browse the evolving body of law at the `#case-law` section.
+- **Mediation & Settlement Track** — contested parties can end a case by splitting
+  the pot by agreement, and an AI *mediator* (`request_mediation`) proposes a fair
+  split with its reasoning — advisory only; money moves only when both sides
+  accept.
+- **Court Analytics & Verifiable Verdict Certificates** — a live `#analytics`
+  dashboard read straight from the chain, and a one-click, self-verifying
+  SHA-256 certificate for any settled case.
+
+See [`CHANGELOG.md`](CHANGELOG.md) for the full diffs.
+
+- **Contracts** (studionet) — the current addresses live in
+  [`contracts/deployments.json`](contracts/deployments.json) and are rewritten by
+  `scripts/deploy.py` on every redeploy. At the time of writing:
 
 | Contract | Address |
 |---|---|
-| `PolicyRegistry` | `0xFC3A3422c64c3B84eDb8B31a333C8531B8Ba1755` |
-| `PriorArtCourt` | `0x082FcFeFEE1B7642C42bd5E1eBaa6C029fe19869` |
-| `Reputation` | `0xF950283384B69900a4B13aCDEc99A7adB137CA7e` |
+| `PolicyRegistry` | `0x5335c30a388d1EB5EED890bBC8A3801EFD71aF98` |
+| `PriorArtCourt` | `0x1d5297ca48e06e384A0722f6942b80777Ff2B933` |
+| `Reputation` | `0xca90435f238dB91042F3BA9BD063FBF51069405A` |
+| `Achievements` | `0xa78b535CE9D2954172B4Db3445189C3C22e77cC4` |
 
 ---
 
