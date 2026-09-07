@@ -32,6 +32,103 @@ from pathlib import Path
 import pytest
 from gltest.direct import VMContext, create_address, deploy_contract
 from gltest.direct.loader import load_contract_class
+import gltest.direct.vm as _gltest_vm
+
+
+# ------------------------------------------------------ discipline-token shim (v0.7)
+#
+# Phase 5 added a per-case canary token: the prompt hands the model a value it
+# must echo back, and the validator rejects any response missing or altering it.
+# The token is derived from the case metadata, so the test's `opinion()` helper
+# cannot know it up front (case_id + urls determine it, and different tests use
+# different case_ids). Rather than teaching every legacy test to pass case_id
+# through, we shim gltest's LLM-mock resolver: when the ACTUAL prompt asks for a
+# specific token and the stored response happens to carry a discipline_token
+# field, rewrite that field's value to the one the prompt is asking for. Legacy
+# tests keep working; tests that want to exercise the discipline-failure path
+# opt out with `opinion(omit_discipline=True)`.
+
+_TOKEN_IN_PROMPT_RE = re.compile(r'"discipline_token":\s*"(PAC-[0-9A-Fa-f]{12})"')
+# Deliberately strict: matches only well-formed PAC tokens so that a test
+# planting a hand-crafted attacker value like "PAC-ATTACKERGUESS" survives the
+# rewrite and reaches the contract intact, letting the failure path be exercised.
+_TOKEN_IN_RESPONSE_RE = re.compile(r'"discipline_token"\s*:\s*"PAC-[0-9A-Fa-f]{12}"')
+
+_original_match_llm = _gltest_vm.VMContext._match_llm_mock
+
+
+def _match_llm_mock_with_discipline(self, prompt: str):
+    response = _original_match_llm(self, prompt)
+    if not isinstance(response, str):
+        return response
+    match = _TOKEN_IN_PROMPT_RE.search(prompt)
+    if not match:
+        return response
+    real_token = match.group(1)
+    if _TOKEN_IN_RESPONSE_RE.search(response):
+        return _TOKEN_IN_RESPONSE_RE.sub(
+            f'"discipline_token": "{real_token}"', response, count=1
+        )
+    # Legacy fixtures build JSON responses without the field. Inject the correct
+    # token so the pre-Phase-5 tests keep passing under the new discipline check.
+    # Non-JSON responses (raw prose like "I am not comfortable...") are left
+    # untouched — those tests exercise the parse-failure path on purpose.
+    try:
+        payload = json.loads(response)
+    except Exception:
+        return response
+    if isinstance(payload, dict) and "discipline_token" not in payload:
+        # A test can opt OUT of the auto-inject by planting `_no_discipline_shim`
+        # in the response — that is how the discipline-failure tests keep their
+        # response canary-free even under the legacy-compat shim.
+        if payload.get("_no_discipline_shim"):
+            return response
+        payload["discipline_token"] = real_token
+        return json.dumps(payload)
+    return response
+
+
+_gltest_vm.VMContext._match_llm_mock = _match_llm_mock_with_discipline
+
+
+_sentinel = object()
+_original_run_validator = _gltest_vm.VMContext.run_validator
+
+
+def _run_validator_with_discipline(self, *, leader_result=_sentinel, leader_error=None, index=-1):
+    """
+    When a test overrides `leader_result`, rewrite its discipline_token to
+    whatever the CAPTURED leader actually produced. Legacy tests build the
+    override with `opinion()` which computes its token from case_id=0/instance=1;
+    the captured validator may belong to an appeal (instance=2) or a later case,
+    and its expected token is different. The stored_result inside the captured
+    tuple went through the mock shim above and already carries the right token,
+    so we just carry that value across.
+    """
+    if leader_error is None and leader_result is not _sentinel:
+        try:
+            stored = self._captured_validators[index][0]
+        except (IndexError, AttributeError):
+            stored = None
+        if isinstance(leader_result, str) and isinstance(stored, str):
+            stored_match = _TOKEN_IN_RESPONSE_RE.search(stored)
+            override_match = _TOKEN_IN_RESPONSE_RE.search(leader_result)
+            if stored_match and override_match:
+                stored_token = re.search(
+                    r'"discipline_token"\s*:\s*"([^"]*)"', stored
+                ).group(1)
+                leader_result = _TOKEN_IN_RESPONSE_RE.sub(
+                    f'"discipline_token": "{stored_token}"',
+                    leader_result,
+                    count=1,
+                )
+    kwargs = {"leader_error": leader_error, "index": index}
+    if leader_result is not _sentinel:
+        kwargs["leader_result"] = leader_result
+    return _original_run_validator(self, **kwargs)
+
+
+_gltest_vm.VMContext.run_validator = _run_validator_with_discipline
 
 
 @contextmanager
@@ -237,23 +334,64 @@ EXHIBIT_C = (
 CLAIM = "This outlet rewrote our exclusive reporting sentence by sentence and dropped the credit."
 
 
+_FNV_OFFSET_64 = 0xCBF29CE484222325
+_FNV_PRIME_64 = 0x100000001B3
+_FNV_MASK_64 = 0xFFFFFFFFFFFFFFFF
+
+
+def _fnv1a_64(text: str) -> int:
+    h = _FNV_OFFSET_64
+    for byte in text.encode("utf-8"):
+        h ^= byte
+        h = (h * _FNV_PRIME_64) & _FNV_MASK_64
+    return h
+
+
+def discipline_token(case_id: int, instance: int = 1,
+                     origin_url: str = ORIGIN_URL, accused_url: str = ACCUSED_URL) -> str:
+    """Mirror of the contract-side canary — the mock LLM must echo this back."""
+    seed = f"pac|{case_id}|{instance}|{origin_url}|{accused_url}"
+    return "PAC-" + format(_fnv1a_64(seed), "016X")[:12]
+
+
 def opinion(
     verdict: str = "INFRINGING",
     overlap: int = 78,
     confidence: int = 88,
     publisher: str = "ORIGIN",
     reason: str = "Structure and exclusive sourcing reproduced with synonyms only.",
+    *,
+    case_id: int = 0,
+    instance: int = 1,
+    origin_url: str = ORIGIN_URL,
+    accused_url: str = ACCUSED_URL,
+    discipline: str | None = None,
+    analyses: dict | None = None,
+    omit_discipline: bool = False,
 ) -> str:
     """A well-formed adjudicator response, for mocking the LLM."""
-    return json.dumps(
-        {
-            "verdict": verdict,
-            "overlap_pct": overlap,
-            "confidence": confidence,
-            "first_publisher": publisher,
-            "reason": reason,
-        }
-    )
+    body = {
+        "verdict": verdict,
+        "overlap_pct": overlap,
+        "confidence": confidence,
+        "first_publisher": publisher,
+        "reason": reason,
+        "analyses": analyses if analyses is not None else {
+            "forensic": "Structural clauses echo the source with synonym-swapped nouns.",
+            "reader": "A reader picks up the exclusive framing without effort.",
+            "skeptic": "No shared upstream source or convention explains the ordering.",
+        },
+    }
+    if not omit_discipline:
+        body["discipline_token"] = discipline if discipline is not None else discipline_token(
+            case_id, instance, origin_url, accused_url
+        )
+    else:
+        # Sentinel the shim looks at — a JSON response carrying this key is left
+        # alone even when no discipline_token is present, so the failure path
+        # actually reaches the contract's discipline check.
+        body["_no_discipline_shim"] = True
+    return json.dumps(body)
 
 
 def mock_evidence(vm, origin: str = EXHIBIT_A, accused: str = EXHIBIT_B):

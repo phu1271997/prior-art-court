@@ -2391,3 +2391,65 @@ textarea:focus {
   margin: 4rem auto;
   padding: 0 1.25rem;
 }
+
+/* ------------------------------------------------ Phase 5 — analyses + discipline */
+
+.analyses {
+  margin-top: 1.25rem;
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--paper-warm);
+}
+
+.analyses h4 {
+  margin: 0 0 0.75rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.analyses dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.6rem;
+}
+
+.analyses dt {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 0.15rem;
+}
+
+.analyses dd {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.discipline {
+  margin-top: 0.85rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.discipline-ok {
+  background: color-mix(in srgb, var(--paper-warm) 85%, transparent);
+  border-left: 3px solid var(--rule-strong);
+  color: var(--ink-soft);
+}
+
+.discipline-lost {
+  background: color-mix(in srgb, #ffe5e0 60%, transparent);
+  border-left: 3px solid #d43a1c;
+  color: #7a1f10;
+}

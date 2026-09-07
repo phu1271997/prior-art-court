@@ -66,15 +66,31 @@ The court's current defenses are structural:
   compromised finding, `confidence < 70` or `INFRINGING with overlap < 40`
   escalates instead of settling.
 
-Not yet defended structurally (documented, planned for Phase 2):
+**Shipped in v0.7 (Phase 5):**
 
-- **Canary token.** A random token can be injected into the prompt with
-  an instruction not to echo it. If the model's answer contains the
-  token, treat the round as compromised. Deferred because it requires a
-  contract change.
-- **Multi-perspective vote.** Reading the exhibits from more than one
-  framing (forensic, reader, skeptic) inside a single round would raise
-  the cost of a successful injection. Deferred to Phase 2.
+- **Discipline canary.** Every hearing derives a per-case token from public
+  case metadata (case id, instance, both URLs) with FNV-1a 64-bit. The
+  prompt hands the model that token and requires it echoed verbatim. The
+  token appears OUTSIDE the fenced exhibit blocks, so attacker-controlled
+  text inside an exhibit cannot know the correct value; a response that
+  echoed the wrong token, no token, or an exhibit-supplied guess fails the
+  validator and the case escalates rather than settles. See
+  `_discipline_token` / `_discipline_ok` / `discipline_lost` in
+  `contracts/contract.py`.
+- **Multi-perspective structured prompt.** The prompt now requires the
+  model to weigh the exhibits under three framings (forensic, reader,
+  skeptic) and to converge on the verdict that survives all three, with
+  each perspective captured as one sentence in the `analyses` field. That
+  raises the cost of a successful injection because an attacker would
+  have to defeat three viewpoints of one adjudicator inside one prompt,
+  not one.
+
+Still deferred (Phase 6+ candidates):
+
+- **Cross-model consensus.** All validators today run the same base model
+  family. A prompt that fools that model would fool every validator; a
+  future phase can require agreement between two independent model
+  runtimes (e.g. one Claude leader / one non-Claude validator round).
 
 ## Money-safety invariants
 

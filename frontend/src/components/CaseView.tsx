@@ -52,6 +52,12 @@ const CONTENT = {
     forfeitSettlement: "The bond was forfeited — an uncontested complaint the court rejected.",
     shareLink: "Copy link",
     shareCopied: "Copied!",
+    analyses: "Multi-perspective analysis",
+    forensic: "Forensic",
+    reader: "Reader",
+    skeptic: "Skeptic",
+    disciplineOk: "Prompt-injection canary held: the adjudicator echoed the per-case token from outside the exhibits.",
+    disciplineLost: "Prompt-injection canary was lost — the case escalated rather than settling on this answer.",
   },
   vi: {
     exhibitA: "Chung cu A — ban goc",
@@ -82,6 +88,12 @@ const CONTENT = {
     forfeitSettlement: "Bond bi tich thu — don kien khong bi phan to ma toa bac.",
     shareLink: "Sao chep lien ket",
     shareCopied: "Da sao chep!",
+    analyses: "Phan tich da goc nhin",
+    forensic: "Phap y",
+    reader: "Doc gia",
+    skeptic: "Hoai nghi",
+    disciplineOk: "Canary chong prompt injection giu vung: hoi dong tra dung token cua vu an, dat ngoai vung chung cu.",
+    disciplineLost: "Canary chong prompt injection bi mat — vu an chuyen phuc tham thay vi chot theo cau tra loi nay.",
   },
 };
 
@@ -184,7 +196,7 @@ export function CaseView({
         </div>
       </dl>
 
-      {entry.instance > 0 ? <Verdict entry={entry} t={t} /> : null}
+      {entry.instance > 0 ? <Verdict entry={entry} history={history} t={t} /> : null}
 
       <section className="actions">
         {entry.status === "FILED" && account && !isComplainant ? (
@@ -283,9 +295,31 @@ export function CaseView({
   );
 }
 
-function Verdict({ entry, t }: { entry: Case; t: typeof CONTENT.en }) {
+function Verdict({
+  entry,
+  history,
+  t,
+}: {
+  entry: Case;
+  history: Record<string, unknown>[];
+  t: typeof CONTENT.en;
+}) {
   const label = VERDICT_LABEL[entry.verdict] ?? entry.verdict;
   const unreadable = entry.verdict === "EVIDENCE_UNAVAILABLE";
+
+  // Pull the most recent instance-level record (first_instance or appeal) — that
+  // is where Phase 5 dropped the three-perspective analyses and the discipline
+  // flag. Everything before it is a lifecycle event without those fields.
+  const lastInstance = [...history]
+    .reverse()
+    .find(
+      (record) => record?.kind === "first_instance" || record?.kind === "appeal",
+    ) as
+    | {
+        analyses?: { forensic?: string; reader?: string; skeptic?: string };
+        discipline_kept?: boolean;
+      }
+    | undefined;
 
   return (
     <section className={`verdict verdict-${entry.verdict.toLowerCase()}`}>
@@ -311,6 +345,37 @@ function Verdict({ entry, t }: { entry: Case; t: typeof CONTENT.en }) {
             <dd>{entry.first_publisher.toLowerCase()}</dd>
           </div>
         </dl>
+      ) : null}
+
+      {lastInstance?.analyses ? (
+        <section className="analyses">
+          <h4>{t.analyses}</h4>
+          <dl>
+            <div>
+              <dt>{t.forensic}</dt>
+              <dd>{lastInstance.analyses.forensic || "—"}</dd>
+            </div>
+            <div>
+              <dt>{t.reader}</dt>
+              <dd>{lastInstance.analyses.reader || "—"}</dd>
+            </div>
+            <div>
+              <dt>{t.skeptic}</dt>
+              <dd>{lastInstance.analyses.skeptic || "—"}</dd>
+            </div>
+          </dl>
+        </section>
+      ) : null}
+
+      {lastInstance && typeof lastInstance.discipline_kept === "boolean" ? (
+        <p
+          className={`discipline discipline-${
+            lastInstance.discipline_kept ? "ok" : "lost"
+          }`}
+          title="Prompt-injection canary — Phase 5"
+        >
+          {lastInstance.discipline_kept ? t.disciplineOk : t.disciplineLost}
+        </p>
       ) : null}
 
       {entry.status === "RESOLVED" ? (

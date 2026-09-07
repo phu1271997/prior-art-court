@@ -10,6 +10,67 @@ line in the release notes explicitly says otherwise.
 
 ---
 
+## [0.7.0] Phase 5 AI Consensus Overhaul - 2026-09-07
+
+Contract release. **All three contracts are redeployed** — the intelligent
+methods changed shape, so the studionet addresses in `contracts/deployments.json`
+are new.
+
+### Added
+- **Anti-prompt-injection canary.** Every hearing derives a per-case token
+  deterministically from public case metadata (case id, instance, both URLs)
+  using FNV-1a 64-bit. The prompt hands the model that token and requires it
+  echoed verbatim; the validator rejects any response that lost, altered, or
+  exhibit-swapped it. A model that followed an instruction planted inside an
+  exhibit will not have the right token to echo, and the case escalates
+  (first instance) or refunds every stake (appeal) instead of settling on the
+  compromised opinion. See `_discipline_token`, `_discipline_ok`,
+  `_first_instance_prompt`, `_appeal_prompt` in `contracts/contract.py`.
+- **Multi-perspective structured prompt.** Both intelligent methods now direct
+  the adjudicator to weigh the dispute from three viewpoints — FORENSIC
+  (expression-level overlap), READER (audience perception), SKEPTIC (the null
+  hypothesis: shared source, convention, coincidence) — and to converge on the
+  verdict that survives all three. Each perspective is captured as one sentence
+  in the response's `analyses` field, coerced by `_analyses_summary`, and
+  logged into the case provenance so parties can inspect the reasoning that
+  reached consensus.
+- **`discipline_kept` and `analyses` on every instance record.** History entries
+  for `first_instance` and `appeal` now carry the canary result plus the three
+  perspective summaries. The frontend surfaces both in the Verdict panel with a
+  new "Multi-perspective analysis" section and a green/red discipline strip.
+- **Post-consensus review adds `discipline_lost` escalation.** The deterministic
+  safety net that already handled `evidence_unavailable`, `low_confidence`, and
+  `inconsistent_finding` now also refuses to settle on any response whose canary
+  did not match, even if the validator set accepted it — belt-and-braces.
+- **15 new discipline tests** in `tests/test_discipline.py`: canary determinism
+  across leader and validators, per-case and per-instance uniqueness, provenance
+  recording of both discipline and analyses, no-canary and forged-canary attack
+  paths refusing consensus at both instances, appeal refund on discipline loss.
+  Total suite: **106 tests** (was 91).
+- **Test infrastructure**: `conftest.py` monkey-patches `_match_llm_mock` and
+  `run_validator` with a discipline-token shim so the pre-Phase-5 fixtures keep
+  passing — the shim rewrites well-formed tokens in stored responses to match
+  what the actual prompt asks for, so tests do not need to compute per-case
+  tokens themselves. Failure-path tests opt out via `opinion(omit_discipline=True)`
+  which plants a `_no_discipline_shim` sentinel the shim respects.
+
+### Changed
+- Appeal terminates with `_refund_all` on **either** unfetchable evidence OR
+  discipline loss — the appeal is the last instance, so an unsafe verdict is
+  never allowed to move money.
+- First-instance validator (`agrees`) short-circuits when both sides return
+  the internal `EVIDENCE_UNAVAILABLE` sentinel; the canary does not apply when
+  there was no LLM output to have followed instructions from.
+- New CSS: `.analyses`, `.discipline-ok`, `.discipline-lost` styles in
+  `frontend/src/styles.css` for the Verdict panel additions.
+
+### Fixed
+- First-instance prompt-parsing errors are still surfaced as JSON parse
+  failures; discipline failure is now a distinct escalation ground so a case
+  reader can tell "the model refused" from "the model got captured."
+
+---
+
 ## [0.6.0] Phase 4 UX polish - 2026-08-29
 
 Frontend-only release. Contracts unchanged.
