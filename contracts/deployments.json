@@ -1,17 +1,22 @@
 {
   "chain": "studionet",
   "chain_id": 61999,
-  "rpc": "https://studio.genlayer.com/api",
+  "deployer": "0x8b563A8c9eeF530300e92E26457D1AB001daEcC7",
   "contracts": {
-    "PolicyRegistry": "0xFC3A3422c64c3B84eDb8B31a333C8531B8Ba1755",
-    "PriorArtCourt": "0x082FcFeFEE1B7642C42bd5E1eBaa6C029fe19869",
-    "Reputation": "0xF950283384B69900a4B13aCDEc99A7adB137CA7e"
+    "PolicyRegistry": "0x5335c30a388d1EB5EED890bBC8A3801EFD71aF98",
+    "PriorArtCourt": "0x1d5297ca48e06e384A0722f6942b80777Ff2B933",
+    "Reputation": "0xca90435f238dB91042F3BA9BD063FBF51069405A",
+    "Achievements": "0xa78b535CE9D2954172B4Db3445189C3C22e77cC4"
   },
   "categories": [
+    "academic-misconduct",
     "academic-paper",
+    "bug-bounty-severity",
     "documentation",
     "marketing-copy",
     "news-article",
+    "patent-claim",
+    "sla-clause",
     "source-code"
   ]
 }

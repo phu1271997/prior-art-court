@@ -44,11 +44,28 @@ export const CHAIN_NAME = (clean(import.meta.env.VITE_GENLAYER_CHAIN) ||
 
 export const chain = CHAINS[CHAIN_NAME] ?? studionet;
 
+// Default studionet addresses, baked in so a Vercel build without env vars
+// still lands on the currently-live contracts. VITE_* env vars override these
+// when present — the same source works for local `npm run dev`, a preview
+// build, and the production deploy. Bump these when `scripts/deploy.py`
+// prints new addresses.
+const DEFAULT_ADDRESSES = {
+  court: "0x1d5297ca48e06e384A0722f6942b80777Ff2B933",
+  policyRegistry: "0x5335c30a388d1EB5EED890bBC8A3801EFD71aF98",
+  reputation: "0xca90435f238dB91042F3BA9BD063FBF51069405A",
+  achievements: "0xa78b535CE9D2954172B4Db3445189C3C22e77cC4",
+} as const;
+
 export const ADDRESSES = {
-  court: clean(import.meta.env.VITE_COURT_ADDRESS),
-  policyRegistry: clean(import.meta.env.VITE_POLICY_REGISTRY_ADDRESS),
-  reputation: clean(import.meta.env.VITE_REPUTATION_ADDRESS),
-  achievements: clean(import.meta.env.VITE_ACHIEVEMENTS_ADDRESS),
+  court: clean(import.meta.env.VITE_COURT_ADDRESS) || DEFAULT_ADDRESSES.court,
+  policyRegistry:
+    clean(import.meta.env.VITE_POLICY_REGISTRY_ADDRESS) ||
+    DEFAULT_ADDRESSES.policyRegistry,
+  reputation:
+    clean(import.meta.env.VITE_REPUTATION_ADDRESS) || DEFAULT_ADDRESSES.reputation,
+  achievements:
+    clean(import.meta.env.VITE_ACHIEVEMENTS_ADDRESS) ||
+    DEFAULT_ADDRESSES.achievements,
 } as const;
 
 export const CONTRACTS_CONFIGURED = Boolean(ADDRESSES.court && ADDRESSES.policyRegistry);
