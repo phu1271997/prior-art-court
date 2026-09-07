@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import {
+  ADDRESSES,
   CHAIN_NAME,
   CONTRACTS_CONFIGURED,
   connectWallet,
   currentAccount,
+  read,
 } from "./lib/chain";
 import type { WriteProgress } from "./lib/chain";
 import * as court from "./lib/court";
@@ -103,16 +105,9 @@ export default function App() {
     // only for that caller. Contracts refuse a non-admin call regardless, but
     // hiding the panel avoids advertising an action the viewer cannot take.
     if (CONTRACTS_CONFIGURED) {
-      import("./lib/court").then(async () => {
-        try {
-          const { read } = await import("./lib/chain");
-          const { ADDRESSES } = await import("./lib/chain");
-          const adminAddr = await read<string>(ADDRESSES.policyRegistry, "get_admin");
-          setAdmin(adminAddr);
-        } catch {
-          setAdmin(null);
-        }
-      });
+      read<string>(ADDRESSES.policyRegistry, "get_admin")
+        .then(setAdmin)
+        .catch(() => setAdmin(null));
     }
   }, []);
 
