@@ -16,7 +16,7 @@ decentralized validator set rather than issued by a platform.
 > who owes whom. GenLayer is the only place all three hold at once.
 
 - **Network:** GenLayer **studionet**, via [GenLayer Studio](https://studio.genlayer.com)
-- **Live app:** <https://prior-art-court.vercel.app>
+- **Live app:** <https://phu1271997.github.io/prior-art-court/>
 - **Source:** <https://github.com/phu1271997/prior-art-court>
 - **Deep dives:** [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · [`docs/SECURITY.md`](docs/SECURITY.md) · [`docs/ECONOMICS.md`](docs/ECONOMICS.md) · [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) · [ADRs](docs/adr/) · [`CHANGELOG.md`](CHANGELOG.md)
 - **Explorer submission draft:** [`deliverables/SUBMISSION.md`](deliverables/SUBMISSION.md)
