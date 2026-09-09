@@ -208,6 +208,32 @@ export class PriorArtCourt {
     return this.readContract<number>(this.addresses.court, "get_precedent_count", [category]);
   }
 
+  /** Prior-art registry: timestamped defensive publications, newest first. */
+  async getRegistrations(limit = 0): Promise<Record<string, unknown>[]> {
+    return this.readJson<Record<string, unknown>[]>(this.addresses.court, "get_registrations", [limit]);
+  }
+
+  /** The registry record for a URL, or null. */
+  async getRegistrationFor(url: string): Promise<Record<string, unknown> | null> {
+    return this.readJson<Record<string, unknown> | null>(this.addresses.court, "get_registration_for", [url]);
+  }
+
+  /** Register a work as timestamped prior art. */
+  async registerWork(opts: {
+    account: unknown;
+    category: string;
+    url: string;
+    contentHash: string;
+    title: string;
+  }): Promise<string> {
+    return this.writeContract(opts.account, this.addresses.court, "register_work", [
+      opts.category,
+      opts.url,
+      opts.contentHash,
+      opts.title,
+    ]);
+  }
+
   /** Every doctrine category currently registered, newest revisions. */
   async listPolicies(): Promise<PolicyRecord[]> {
     return this.readJson<PolicyRecord[]>(

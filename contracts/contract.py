@@ -54,6 +54,7 @@ cases escalate to an appeal that reads a THIRD source and decides precedence.
 from genlayer import *
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 import json
 
 
@@ -294,6 +295,20 @@ class AmicusBrief:
 
 @allow_storage
 @dataclass
+class Registration:
+    """A timestamped prior-art record. The on-chain order and the consensus
+    block time are the authoritative 'this existed by then' proof the court reads
+    when it has to decide which of two works came first."""
+    author: Address
+    category: str
+    url: str
+    content_hash: str  # caller-supplied SHA-256 hex of the work (optional)
+    title: str
+    registered_at: str  # ISO-8601 block time, from the consensus clock
+
+
+@allow_storage
+@dataclass
 class Case:
     complainant: Address
     respondent: Address
@@ -362,6 +377,12 @@ class Contract(gl.Contract):
     # they settled. This is the court's body of case law; the first instance
     # reads the tail of the list for the category it is about to hear.
     precedent_index: TreeMap[str, DynArray[u256]]
+
+    # Prior-art registry: timestamped defensive publications. Append-only list
+    # (id = index) plus a url -> id index so the court can ask, at judgement
+    # time, whether an exhibit was registered and when.
+    registrations: DynArray[Registration]
+    registry_by_url: TreeMap[str, u256]  # lowercased url -> registration id
 
     def __init__(self, policy_registry: str) -> None:
         self.admin = gl.message.sender_address
@@ -574,6 +595,79 @@ class Contract(gl.Contract):
                 "bond": bond,
             }
         )
+
+    # --------------------------------------------------- prior-art registry
+
+    @gl.public.write
+    def register_work(self, category: str, url: str, content_hash: str, title: str) -> None:
+        """
+        Register a work as prior art, timestamped by the consensus clock.
+
+        This is the proactive half of the court: instead of only reacting to a
+        copy after the fact, an author can place a dated, on-chain marker that a
+        work existed by a certain time. When a later dispute turns on which of
+        two works came first, the court reads this registry and treats an earlier
+        registration as strong evidence of precedence.
+
+        One registration per URL, first claim wins — a record cannot be
+        back-dated by re-registering a URL someone else already staked. The
+        consensus clock (`datetime.now`) supplies the timestamp, so no caller can
+        forge it.
+        """
+        slug = category.strip().lower()
+        doctrine = self._policies().view().get_policy(slug)
+        assert len(doctrine) > 0, "court: no doctrine registered for this category"
+        cleaned = url.strip()
+        assert _is_http_url(cleaned), "court: url must be an http(s) URL"
+        key = cleaned.lower()
+        assert self.registry_by_url.get(key, None) is None, "court: this URL is already registered"
+
+        reg_id = len(self.registrations)
+        now_iso = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        self.registrations.append(gl.storage.inmem_allocate(
+            Registration,
+            gl.message.sender_address,
+            slug,
+            cleaned,
+            content_hash.strip().lower()[:80],
+            str(title).strip()[:200],
+            now_iso,
+        ))
+        self.registry_by_url[key] = u256(reg_id)
+
+        self._log({"kind": "registered", "registration_id": reg_id, "category": slug, "url": cleaned})
+
+    def _registry_snapshot(self, origin_url: str, accused_url: str) -> list:
+        """
+        Read any registry records for the two exhibits out of storage as plain
+        dicts, before the non-deterministic block. Every validator reads the same
+        records, so the dated evidence put before the adjudicator is identical.
+        """
+        out = []
+        for label, url in (("ORIGIN", origin_url), ("ACCUSED", accused_url)):
+            rid = self.registry_by_url.get(url.strip().lower(), None)
+            if rid is None:
+                continue
+            reg = self.registrations[int(rid)]
+            out.append({
+                "exhibit": label,
+                "registration_id": int(rid),
+                "url": str(reg.url),
+                "registered_at": str(reg.registered_at),
+                "author": _addr_str(reg.author),
+            })
+        return out
+
+    def _registration_dict(self, reg_id: int, reg: Registration) -> dict:
+        return {
+            "registration_id": reg_id,
+            "author": _addr_str(reg.author),
+            "category": str(reg.category),
+            "url": str(reg.url),
+            "content_hash": str(reg.content_hash),
+            "title": str(reg.title),
+            "registered_at": str(reg.registered_at),
+        }
 
     @gl.public.write.payable
     def contest_case(self, case_id: int) -> None:
@@ -951,6 +1045,9 @@ class Contract(gl.Contract):
         # law captured in the closure.
         precedents = self._precedent_snapshot(category, case_id)
         precedent_ids = [int(p["case_id"]) for p in precedents]
+        # Prior-art registry: any timestamped on-chain record for either exhibit,
+        # read here so every validator sees the same dated evidence.
+        registry = self._registry_snapshot(origin_url, accused_url)
 
         def hear() -> str:
             exhibit_a = _fetch(origin_url)
@@ -973,7 +1070,7 @@ class Contract(gl.Contract):
             return _extract_json(gl.nondet.exec_prompt(_first_instance_prompt(
                 category, doctrine, claim_text, origin_url, accused_url,
                 exhibit_a, exhibit_b, discipline, snapshots, amicus_evidence,
-                precedents
+                precedents, registry
             )))
 
         def agrees(leader_result) -> bool:
@@ -1073,6 +1170,7 @@ class Contract(gl.Contract):
                 "precedent_available": precedent_ids,
                 "cited_precedents": cited,
                 "precedent_alignment": alignment,
+                "registry_consulted": [r["registration_id"] for r in registry],
             },
         )
 
@@ -1149,6 +1247,9 @@ class Contract(gl.Contract):
         case.appellant = gl.message.sender_address
 
         discipline = _discipline_token(case_id, 2, origin_url, accused_url)
+        # Dated on-chain registry records for either exhibit — precedence is what
+        # the appeal decides, so this is exactly the instance that benefits most.
+        registry = self._registry_snapshot(origin_url, accused_url)
 
         def rehear() -> str:
             exhibit_a = _fetch(origin_url)
@@ -1170,6 +1271,7 @@ class Contract(gl.Contract):
                 exhibit_b,
                 exhibit_c if exhibit_c is not None else "(the corroborating source could not be fetched)",
                 discipline,
+                registry,
             )))
 
         def agrees(leader_result) -> bool:
@@ -1236,6 +1338,7 @@ class Contract(gl.Contract):
                 "analyses": analyses,
                 "reason": reason,
                 "fee": fee,
+                "registry_consulted": [r["registration_id"] for r in registry],
             },
         )
 
@@ -1627,6 +1730,28 @@ class Contract(gl.Contract):
         ids = self.precedent_index.get(category, None)
         return 0 if ids is None else len(ids)
 
+    @gl.public.view
+    def get_registration_count(self) -> int:
+        return len(self.registrations)
+
+    @gl.public.view
+    def get_registrations(self, limit: int) -> str:
+        """Prior-art registry, newest first. `limit <= 0` returns all."""
+        total = len(self.registrations)
+        count = total if limit <= 0 else min(limit, total)
+        out = []
+        for i in range(total - 1, total - count - 1, -1):
+            out.append(self._registration_dict(i, self.registrations[i]))
+        return json.dumps(out)
+
+    @gl.public.view
+    def get_registration_for(self, url: str) -> str:
+        """The registry record for a URL, or null if it was never registered."""
+        rid = self.registry_by_url.get(url.strip().lower(), None)
+        if rid is None:
+            return json.dumps(None)
+        return json.dumps(self._registration_dict(int(rid), self.registrations[int(rid)]))
+
     def _case_dict(self, case_id: int) -> dict:
         case = self._case(case_id)
         return {
@@ -1676,11 +1801,13 @@ def _first_instance_prompt(
     snapshots: list | None = None,
     amicus_evidence: list | None = None,
     precedents: list | None = None,
+    registry: list | None = None,
 ) -> str:
     domain_note = _domain_note(category)
     snapshots_block = _render_snapshots(snapshots or [])
     amicus_block = _render_amicus(amicus_evidence or [])
     precedent_block = _render_precedents(precedents or [])
+    registry_block = _render_registry(registry or [])
     return f"""You are sitting as an impartial adjudicator in a prior-art dispute. You
 apply the doctrine you are given, and nothing else. You are not asked what is fair
 in general, what the law is in any particular country, or what you would prefer.
@@ -1728,6 +1855,16 @@ them for TIMING (which work was public first), for edits since publication, and
 for confirming that the exhibit you fetched was not an edited or defaced version.
 Ignore a snapshot whose fenced block is empty or which contradicts itself; a
 supplementary source cannot outweigh a plainly readable primary one.
+
+PRIOR-ART REGISTRY — timestamped on-chain records
+{registry_block}
+
+A registry record is an on-chain, timestamped claim that a work existed by a
+given date, made before this dispute. When a record shows one exhibit was
+registered before the other, treat that date as strong evidence for
+first_publisher — stronger than undated page content. A registration cannot by
+itself prove authorship or copying, and no registration for an exhibit means
+nothing either way.
 
 AMICUS BRIEFS — third-party evidence contributions
 {amicus_block}
@@ -1834,8 +1971,10 @@ def _appeal_prompt(
     exhibit_b: str,
     exhibit_c: str,
     discipline_token: str,
+    registry: list | None = None,
 ) -> str:
     domain_note = _domain_note(category)
+    registry_block = _render_registry(registry or [])
     return f"""You are sitting as the FINAL instance in a prior-art dispute. The first
 instance could not decide it safely — its finding was '{first_finding}' — so the case
 comes to you with a third source, and with one extra question that the first
@@ -1874,6 +2013,16 @@ EXHIBIT C — corroborating source submitted on appeal, fetched from {corroborat
 <<<EXHIBIT_C
 {_truncate(exhibit_c)}
 EXHIBIT_C>>>
+
+PRIOR-ART REGISTRY — timestamped on-chain records
+{registry_block}
+
+A registry record is an on-chain, timestamped claim that a work existed by a
+given date. Because first_publisher is the question this instance exists to
+settle, a record showing one exhibit was registered before the other is strong,
+hard-to-forge evidence of precedence — weigh it alongside Exhibit C. A
+registration cannot by itself prove authorship, and an absent record means
+nothing.
 
 {domain_note}
 
@@ -2160,6 +2309,19 @@ def _render_precedents(precedents) -> str:
             f"reasoning: {p['reason'] or '(no reasoning recorded)'}"
         )
     return "\n\n".join(parts)
+
+
+def _render_registry(registry) -> str:
+    """Format any timestamped registry records for the two exhibits."""
+    if not registry:
+        return "(neither exhibit has a prior-art registration on this court)"
+    parts = []
+    for r in registry:
+        parts.append(
+            f"EXHIBIT {r['exhibit']} is REGISTERED — record #{r['registration_id']}, "
+            f"registered_at {r['registered_at']} by {r['author']}"
+        )
+    return "\n".join(parts)
 
 
 def _cited_precedents(value, available_ids) -> list:

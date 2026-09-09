@@ -3177,3 +3177,53 @@ textarea:focus {
   text-transform: uppercase;
   color: var(--ink-faint);
 }
+
+/* --------------------------------------------------- prior-art registry */
+
+.registry-section { background: var(--paper-warm); }
+.registry-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 360px) 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+@media (max-width: 720px) {
+  .registry-grid { grid-template-columns: 1fr; }
+}
+.registry-form { display: grid; gap: 0.7rem; }
+.registry-form label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+.registry-form input,
+.registry-form select,
+.registry-form textarea {
+  font: inherit;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 6px;
+  background: var(--paper-raised);
+  color: var(--ink);
+}
+.registry-hash { margin: 0; display: flex; gap: 0.5rem; align-items: baseline; }
+.registry-hash code { font-size: 0.72rem; color: var(--ink-soft); word-break: break-all; }
+.registry-list ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.8rem; }
+.registry-card {
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-left: 4px solid var(--rule-strong);
+  border-radius: 6px;
+  padding: 0.9rem 1.1rem;
+}
+.registry-card-head {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; margin-bottom: 0.3rem;
+}
+.registry-card-head .case-number { font-family: var(--mono); font-size: 0.8rem; color: var(--ink-faint); }
+.registry-title { font-family: var(--serif); font-size: 1.02rem; color: var(--ink); }
+.registry-url { font-size: 0.82rem; word-break: break-all; }
+.registry-meta {
+  display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 0.4rem;
+  font-family: var(--mono); font-size: 0.75rem; color: var(--ink-faint);
+}

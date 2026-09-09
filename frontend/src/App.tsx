@@ -20,6 +20,7 @@ import { ConsensusOverlay } from "./components/ConsensusOverlay";
 import { Docket } from "./components/Docket";
 import { DoctrineLibrary } from "./components/DoctrineLibrary";
 import { FileComplaint } from "./components/FileComplaint";
+import { Registry } from "./components/Registry";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { Standings } from "./components/Standings";
 import { Architecture } from "./sections/Architecture";
@@ -312,6 +313,18 @@ export default function App() {
           </div>
         </div>
       </section>
+
+      <Registry
+        policies={policies}
+        account={account}
+        busy={Boolean(busy)}
+        reloadKey={cases.length}
+        onRegister={(input) =>
+          run("Registering the work", false, (onProgress) =>
+            court.registerWork(account!, input, onProgress)
+          )
+        }
+      />
 
       <CaseLaw policies={policies} onSelect={setSelected} />
 

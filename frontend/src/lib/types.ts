@@ -51,6 +51,17 @@ export interface Case {
 export const NO_SHARE = 255;
 export const MEDIATION_NOT_RUN = 255;
 
+/** Mirrors `Contract._registration_dict` — one timestamped prior-art record. */
+export interface Registration {
+  registration_id: number;
+  author: string;
+  category: string;
+  url: string;
+  content_hash: string;
+  title: string;
+  registered_at: string; // ISO-8601, from the consensus clock
+}
+
 export type PrecedentAlignment =
   | "FOLLOWED"
   | "DISTINGUISHED"

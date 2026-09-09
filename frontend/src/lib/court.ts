@@ -2,7 +2,7 @@
 
 import { ADDRESSES, asAddress, read, readJson, write } from "./chain";
 import type { WriteProgress, WriteResult } from "./chain";
-import type { Case, Policy, Precedent, Standing } from "./types";
+import type { Case, Policy, Precedent, Registration, Standing } from "./types";
 
 export function listPolicies(): Promise<Policy[]> {
   return readJson<Policy[]>(ADDRESSES.policyRegistry, "get_categories");
@@ -15,6 +15,30 @@ export function getPrecedents(category: string, limit = 0): Promise<Precedent[]>
 
 export function getPrecedentCount(category: string): Promise<number> {
   return read<number>(ADDRESSES.court, "get_precedent_count", [category]);
+}
+
+/* ------------------------------------------------ prior-art registry */
+
+export function getRegistrations(limit = 0): Promise<Registration[]> {
+  return readJson<Registration[]>(ADDRESSES.court, "get_registrations", [limit]);
+}
+
+export function getRegistrationFor(url: string): Promise<Registration | null> {
+  return readJson<Registration | null>(ADDRESSES.court, "get_registration_for", [url]);
+}
+
+export function registerWork(
+  account: string,
+  input: { category: string; url: string; contentHash: string; title: string },
+  onProgress?: Progress
+): Promise<WriteResult> {
+  return write(
+    account,
+    ADDRESSES.court,
+    "register_work",
+    [input.category, input.url, input.contentHash, input.title],
+    { onProgress }
+  );
 }
 
 export function listCases(limit = 0): Promise<Case[]> {

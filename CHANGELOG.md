@@ -10,7 +10,63 @@ line in the release notes explicitly says otherwise.
 
 ---
 
-## [0.14.0] Milestone — Court Analytics & Verifiable Verdict Certificates - 2026-09-07
+## [0.15.0] Milestone — Prior-Art Registry (timestamped defensive publication) - 2026-09-09
+
+Major feature release. **Adds the proactive half of the court.** Until now the
+court was purely reactive: it only acted once a copy already existed and someone
+filed. The registry lets an author place a dated, on-chain marker that a work
+existed by a certain time, and the court now READS that registry at judgement
+time as hard-to-forge evidence of which work came first. Contract redeployed (new
+`Registration` storage).
+
+### Why this matters
+The hardest question in a copying dispute is precedence: who published first. Page
+content is undated and editable; archive snapshots help but are external. A
+registry record is on-chain, timestamped by the consensus clock, and can only be
+claimed once per URL — so it cannot be back-dated. Feeding it into the
+adjudicator (and especially the appeal, which exists to settle precedence) gives
+the court a dated anchor it never had. This is GenLayer-native: the timestamp
+comes from consensus, the record is immutable, and the same validator set that
+reasons over the works also reads the registry inside the contract.
+
+### Added
+- **`Registration` dataclass + `registrations` / `registry_by_url` storage.**
+  `register_work(category, url, content_hash, title)` records the caller, the
+  category's doctrine must exist, the URL must be http(s), and each URL can be
+  registered only once (first claim wins). The timestamp comes from the consensus
+  clock (`datetime.now`), so no caller can forge it.
+- **`_registry_snapshot`** reads any record for the two exhibits out of storage
+  before the non-deterministic block, so every validator sees identical dated
+  evidence.
+- **Registry block in both prompts** — the first instance and the appeal now show
+  the adjudicator any timestamped record for the exhibits, with explicit
+  instructions to treat an earlier registration as strong (not absolute)
+  precedence evidence. Each hearing records `registry_consulted` in its history.
+- **`get_registrations(limit)`, `get_registration_for(url)`,
+  `get_registration_count()`** public views.
+- **New frontend `Registry` page** (`#registry`, bilingual EN/VI): register a
+  work (with an optional in-browser SHA-256 fingerprint of its text) and browse
+  the dated records. Added to the nav.
+- **`court.ts` + SDK**: `registerWork`, `getRegistrations`, `getRegistrationFor`
+  and the `Registration` type.
+- **6 new tests** in `tests/test_registry.py`: a registration is stored and
+  timestamped; a URL can only be claimed once (no back-dating); lookup by URL;
+  unknown category and non-http URL refused; and the registry record actually
+  reaches the adjudicator (proved by keying the LLM mock to the registry block)
+  with `registry_consulted` recorded on-chain.
+
+### Also in this release
+The **Court Analytics** dashboard and **Verifiable Verdict Certificates** (below,
+0.14.0) ship as the transparency layer alongside the registry: together they make
+the court's record legible (analytics), portable and tamper-evident
+(certificates), and anchored in time (registry).
+
+### Notes
+- Total suite: **172 tests** (was 166). Redeploy required — storage changed.
+
+---
+
+## [0.14.0] Court Analytics & Verifiable Verdict Certificates - 2026-09-07
 
 Feature release, **frontend only — no contract change and no redeploy**. Adds a
 live analytics dashboard read straight from the chain, and turns any settled case
