@@ -50,10 +50,10 @@ export const chain = CHAINS[CHAIN_NAME] ?? studionet;
 // build, and the production deploy. Bump these when `scripts/deploy.py`
 // prints new addresses.
 const DEFAULT_ADDRESSES = {
-  court: "0x3F3713D14DFE5b9F6E34aF3d670BD7EDdD354803",
-  policyRegistry: "0x27b50d2F2bA20cfCa9AC16e740DBd5e63BA7b8D5",
-  reputation: "0x76ef3af5Ff9D67eFC8074f2FFeCE956AD98C77e0",
-  achievements: "0x1f2CA7F60D4199990E81C9a41589d7DB97A3382A",
+  court: "0xe90cb2b90dE11d0572181Cff6E554b9c6D95073E",
+  policyRegistry: "0xb9C2d44735F806f7BfA4546471f95749C3D5a6F2",
+  reputation: "0x66f2cC33EfccE416CE5e8cB7828c6cDb9cDDC5bb",
+  achievements: "0x3dC7FdFEdc24A2FaD41759246F67BEb518B7b97C",
 } as const;
 
 export const ADDRESSES = {
