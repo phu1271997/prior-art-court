@@ -284,9 +284,10 @@ The repo root carries a `vercel.json` that builds `frontend/` and serves
 ```bash
 vercel link --yes --project prior-art-court
 printf 'studionet' | vercel env add VITE_GENLAYER_CHAIN production
-printf '0x082FcFeFEE1B7642C42bd5E1eBaa6C029fe19869' | vercel env add VITE_COURT_ADDRESS production
-printf '0xFC3A3422c64c3B84eDb8B31a333C8531B8Ba1755' | vercel env add VITE_POLICY_REGISTRY_ADDRESS production
-printf '0xF950283384B69900a4B13aCDEc99A7adB137CA7e' | vercel env add VITE_REPUTATION_ADDRESS production
+printf '0x33181B83281b49069B03E16a422BEc624766D3a0' | vercel env add VITE_COURT_ADDRESS production
+printf '0x0401eAa0b3a81Be0b7D5B0CaA09b81C665fE6F1D' | vercel env add VITE_POLICY_REGISTRY_ADDRESS production
+printf '0x45d5E3AB72eaE2f46d9d6588Dfa0EdAFaB18b75A' | vercel env add VITE_REPUTATION_ADDRESS production
+printf '0x6c355CC346c35f9490a242195220E292AC0B85bB' | vercel env add VITE_ACHIEVEMENTS_ADDRESS production
 vercel --prod --yes
 ```
 

@@ -3,10 +3,10 @@
   "chain_id": 61999,
   "deployer": "0x8b563A8c9eeF530300e92E26457D1AB001daEcC7",
   "contracts": {
-    "PolicyRegistry": "0xb9C2d44735F806f7BfA4546471f95749C3D5a6F2",
-    "PriorArtCourt": "0xe90cb2b90dE11d0572181Cff6E554b9c6D95073E",
-    "Reputation": "0x66f2cC33EfccE416CE5e8cB7828c6cDb9cDDC5bb",
-    "Achievements": "0x3dC7FdFEdc24A2FaD41759246F67BEb518B7b97C"
+    "PolicyRegistry": "0x0401eAa0b3a81Be0b7D5B0CaA09b81C665fE6F1D",
+    "PriorArtCourt": "0x33181B83281b49069B03E16a422BEc624766D3a0",
+    "Reputation": "0x45d5E3AB72eaE2f46d9d6588Dfa0EdAFaB18b75A",
+    "Achievements": "0x6c355CC346c35f9490a242195220E292AC0B85bB"
   },
   "categories": [
     "academic-misconduct",
