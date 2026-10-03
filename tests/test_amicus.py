@@ -337,3 +337,78 @@ def test_the_provenance_shows_every_amicus_lifecycle_event(vm, court, accounts):
     assert submitted["stance"] == "SUPPORTING_COMPLAINANT"
     settled = next(e for e in history if e["kind"] == "amicus_settled")
     assert settled["outcome"] == "won"
+
+
+# ------------------------------------------------- terminal-path stake conservation
+# Judge regression: a case that ends WITHOUT a verdict (ordinary withdrawal of a
+# FILED case, or a mutual settlement) must unwind every amicus stake. No stance
+# was vindicated, so complainant, defendant and third-party credits together
+# must conserve every wei that was ever deposited.
+
+def _extra_address(seed: str):
+    from gltest.direct import create_address
+    return create_address(seed)
+
+
+def test_withdrawing_a_filed_case_refunds_every_amicus_stake(vm, court, accounts):
+    """A FILED case can already carry amicus briefs. Withdrawing reaches no
+    verdict, so each third party's stake must come straight back — none stranded."""
+    dave = _extra_address("dave")
+    case_id = file_case(vm, court, accounts["alice"], bond=GEN)          # complainant stakes 1 GEN
+    _submit(vm, court, case_id, accounts["carol"], AMICUS_URL_A, "SUPPORTING_COMPLAINANT", stake=MIN_STAKE)
+    _submit(vm, court, case_id, dave, AMICUS_URL_B, "SUPPORTING_RESPONDENT", stake=2 * MIN_STAKE)
+
+    deposited = GEN + MIN_STAKE + 2 * MIN_STAKE
+
+    vm.sender = accounts["alice"]
+    court.withdraw_case(case_id)
+
+    assert case_of(court, case_id)["status"] == "WITHDRAWN"
+    alice = int(court.get_withdrawable(accounts["alice"]))   # complainant
+    bob = int(court.get_withdrawable(accounts["bob"]))       # no defendant on a FILED case
+    carol = int(court.get_withdrawable(accounts["carol"]))   # third party
+    dave_c = int(court.get_withdrawable(dave))               # third party
+
+    assert alice == GEN                 # bond back in full
+    assert bob == 0                     # never a party, never credited
+    assert carol == MIN_STAKE           # stake back in full
+    assert dave_c == 2 * MIN_STAKE      # stake back in full
+    assert int(court.get_forfeited_pool()) == 0
+    # Conservation: every deposited wei is accounted for in the credits.
+    assert alice + bob + carol + dave_c == deposited
+
+    briefs = json.loads(court.get_amicus_briefs(case_id))
+    assert all(b["refunded"] for b in briefs)
+
+
+def test_a_mediated_settlement_refunds_amicus_and_conserves_every_stake(vm, court, accounts):
+    """A mutual settlement splits the parties' pot and refunds every amicus
+    stake. Parties + third parties together conserve every deposited wei."""
+    dave = _extra_address("dave")
+    cid = file_case(vm, court, accounts["alice"], bond=GEN)              # 1 GEN
+    contest(vm, court, cid, accounts["bob"], counter=3 * GEN)           # +3 GEN -> 4 GEN pot
+    _submit(vm, court, cid, accounts["carol"], AMICUS_URL_A, "SUPPORTING_COMPLAINANT", stake=MIN_STAKE)
+    _submit(vm, court, cid, dave, AMICUS_URL_C, "NEUTRAL", stake=2 * MIN_STAKE)
+
+    deposited = GEN + 3 * GEN + MIN_STAKE + 2 * MIN_STAKE
+
+    vm.sender = accounts["alice"]
+    court.propose_settlement(cid, 25)
+    vm.sender = accounts["bob"]
+    court.accept_settlement(cid)
+
+    assert case_of(court, cid)["resolution"] == "MEDIATED"
+    alice = int(court.get_withdrawable(accounts["alice"]))   # complainant
+    bob = int(court.get_withdrawable(accounts["bob"]))       # defendant
+    carol = int(court.get_withdrawable(accounts["carol"]))   # third party
+    dave_c = int(court.get_withdrawable(dave))               # third party
+
+    assert alice + bob == 4 * GEN       # agreed pot split, conserved to the wei
+    assert carol == MIN_STAKE           # amicus stake refunded in full
+    assert dave_c == 2 * MIN_STAKE      # amicus stake refunded in full
+    assert int(court.get_forfeited_pool()) == 0
+    # Conservation across all three roles.
+    assert alice + bob + carol + dave_c == deposited
+
+    briefs = json.loads(court.get_amicus_briefs(cid))
+    assert all(b["refunded"] for b in briefs)

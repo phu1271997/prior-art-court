@@ -235,6 +235,32 @@ def _fnv1a_64(text: str) -> int:
     return h
 
 
+def _content_fingerprint(text: str) -> str:
+    """Deterministic fingerprint of fetched page content.
+
+    Bound into a registration at registration time and re-checked against the
+    live exhibit at hearing time. FNV-1a (not hashlib) to match the rest of the
+    contract's portability stance; the property needed here is tamper-evidence
+    against a later content swap, not cryptographic collision-resistance.
+    """
+    return format(_fnv1a_64((text or "").strip()), "016x")
+
+
+def _verify_registry(registry: list, exhibit_a, exhibit_b) -> list:
+    """Re-check each registration's bound fingerprint against the exhibit fetched
+    THIS hearing. A record is `verified` only if the live page still hashes to
+    the fingerprint captured at registration; a swapped page (or an empty
+    binding) is marked unverified and must not be used as publication evidence."""
+    out = []
+    for r in registry:
+        body = exhibit_a if r.get("exhibit") == "ORIGIN" else exhibit_b
+        live_fp = _content_fingerprint(body) if body else ""
+        rec = dict(r)
+        rec["verified"] = bool(r.get("content_hash")) and live_fp == r.get("content_hash")
+        out.append(rec)
+    return out
+
+
 def _discipline_token(case_id: int, instance: int, origin_url: str, accused_url: str) -> str:
     """Per-case public-input canary; leader and every validator compute the same."""
     seed = f"pac|{case_id}|{instance}|{origin_url}|{accused_url}"
@@ -302,7 +328,9 @@ class Registration:
     author: Address
     category: str
     url: str
-    content_hash: str  # caller-supplied SHA-256 hex of the work (optional)
+    content_hash: str  # fingerprint of the CONTENT fetched at registration time
+                       # (not caller-supplied) — binds the timestamp to the exact
+                       # bytes, so a later content swap is detectable at hearing.
     title: str
     registered_at: str  # ISO-8601 block time, from the consensus clock
 
@@ -613,6 +641,13 @@ class Contract(gl.Contract):
         back-dated by re-registering a URL someone else already staked. The
         consensus clock (`datetime.now`) supplies the timestamp, so no caller can
         forge it.
+
+        The timestamp is bound to the CONTENT that is live right now: the page is
+        fetched under consensus and fingerprinted, and that fingerprint is what
+        the record stores. A caller-supplied `content_hash` is NOT trusted — the
+        timestamp only means something glued to the exact bytes it stamps, and
+        the binding is re-verified against the exhibit at hearing time so a page
+        swapped after registration can no longer pass as dated publication proof.
         """
         slug = category.strip().lower()
         doctrine = self._policies().view().get_policy(slug)
@@ -622,6 +657,17 @@ class Contract(gl.Contract):
         key = cleaned.lower()
         assert self.registry_by_url.get(key, None) is None, "court: this URL is already registered"
 
+        # Fetch + fingerprint the live content under consensus. strict_eq makes
+        # every validator agree on the exact fingerprint, so only stable content
+        # can be bound — which is precisely what an immutable record requires.
+        def _bind():
+            page = _fetch(cleaned)
+            if page is None or len(page) < MIN_EVIDENCE_CHARS:
+                return ""
+            return _content_fingerprint(page)
+        bound_hash = gl.eq_principle.strict_eq(_bind)
+        assert bound_hash, "court: could not fetch enough content to bind this registration"
+
         reg_id = len(self.registrations)
         now_iso = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
         self.registrations.append(gl.storage.inmem_allocate(
@@ -629,7 +675,7 @@ class Contract(gl.Contract):
             gl.message.sender_address,
             slug,
             cleaned,
-            content_hash.strip().lower()[:80],
+            bound_hash,
             str(title).strip()[:200],
             now_iso,
         ))
@@ -655,6 +701,7 @@ class Contract(gl.Contract):
                 "url": str(reg.url),
                 "registered_at": str(reg.registered_at),
                 "author": _addr_str(reg.author),
+                "content_hash": str(reg.content_hash),
             })
         return out
 
@@ -999,6 +1046,12 @@ class Contract(gl.Contract):
         case.status = STATUS_WITHDRAWN
         self._credit(case.complainant, refund)
 
+        # A FILED case can already carry amicus briefs (submit_amicus accepts
+        # STATUS_FILED). Withdrawing reaches no verdict, so — exactly like a
+        # mutual settlement — no stance was vindicated and every amicus stake
+        # must unwind. Without this the third parties' stakes are stranded.
+        self._refund_all_amicus(case_id)
+
         self._record(case_id, {"kind": "withdrawn", "refund": refund})
         self._log({"kind": "withdrawn", "case_id": case_id})
 
@@ -1067,10 +1120,14 @@ class Contract(gl.Contract):
             # brief's stated stance, but with the caveat that its evidence
             # could not be independently read.
             amicus_evidence = _fetch_amicus_evidence(amicus_snapshot)
+            # Verify each registration's bound fingerprint against the exhibit
+            # fetched this hearing — only a match may be used as dated publication
+            # evidence; a swapped page is handed to the prompt as UNVERIFIED.
+            registry_checked = _verify_registry(registry, exhibit_a, exhibit_b)
             return _extract_json(gl.nondet.exec_prompt(_first_instance_prompt(
                 category, doctrine, claim_text, origin_url, accused_url,
                 exhibit_a, exhibit_b, discipline, snapshots, amicus_evidence,
-                precedents, registry
+                precedents, registry_checked
             )))
 
         def agrees(leader_result) -> bool:
@@ -1259,6 +1316,7 @@ class Contract(gl.Contract):
                 return _unavailable(_Unavailable.FETCH)
             if len(exhibit_a) < MIN_EVIDENCE_CHARS or len(exhibit_b) < MIN_EVIDENCE_CHARS:
                 return _unavailable(_Unavailable.THIN)
+            registry_checked = _verify_registry(registry, exhibit_a, exhibit_b)
             return _extract_json(gl.nondet.exec_prompt(_appeal_prompt(
                 category,
                 doctrine,
@@ -1271,7 +1329,7 @@ class Contract(gl.Contract):
                 exhibit_b,
                 exhibit_c if exhibit_c is not None else "(the corroborating source could not be fetched)",
                 discipline,
-                registry,
+                registry_checked,
             )))
 
         def agrees(leader_result) -> bool:
@@ -2312,15 +2370,31 @@ def _render_precedents(precedents) -> str:
 
 
 def _render_registry(registry) -> str:
-    """Format any timestamped registry records for the two exhibits."""
+    """Format any timestamped registry records for the two exhibits.
+
+    A record is only dated publication evidence if its bound content fingerprint
+    still matches the live exhibit (`verified`). A record whose page was swapped
+    after registration is shown as UNVERIFIED so the adjudicator does not rely on
+    it as proof of what existed when.
+    """
     if not registry:
         return "(neither exhibit has a prior-art registration on this court)"
     parts = []
     for r in registry:
-        parts.append(
-            f"EXHIBIT {r['exhibit']} is REGISTERED — record #{r['registration_id']}, "
-            f"registered_at {r['registered_at']} by {r['author']}"
-        )
+        if r.get("verified"):
+            parts.append(
+                f"EXHIBIT {r['exhibit']} is REGISTERED and CONTENT-VERIFIED — record "
+                f"#{r['registration_id']}, registered_at {r['registered_at']} by "
+                f"{r['author']}. The live page still matches the fingerprint bound at "
+                f"registration, so this is valid dated publication evidence."
+            )
+        else:
+            parts.append(
+                f"EXHIBIT {r['exhibit']} has a registration on file (#{r['registration_id']}, "
+                f"registered_at {r['registered_at']}) but its live content NO LONGER "
+                f"MATCHES the fingerprint bound at registration. Treat it as UNVERIFIED "
+                f"and do NOT use it as publication evidence."
+            )
     return "\n".join(parts)
 
 
